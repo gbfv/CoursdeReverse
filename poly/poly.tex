@@ -715,33 +715,59 @@ Une section écrite d'après :
 	\item \url{https://learn.microsoft.com/en-us/previous-versions/ms809762(v=msdn.10)}
 \end{itemize}
 
-A quoi ressemblent les premiers octets d'un exécutable Windows/PE ? Un extrait d'un exécutable sous \url{https://ide.kaitai.io} : 
+Un fichier exécutable \Windows\ contient : 
+\begin{itemize}
+	\item une partie \code{DOS},
+	\item un \code{header} pour la partie \code{PE}
+	\item et une liste de sections.
+\end{itemize} 
 
+\begin{tikzpicture}
+\fill[blue!30] (0,0) -- (12,0) -- (12,2) -- (0,2) -- cycle;
+\fill[red!20] (0.1,0.1) -- (2,0.1) -- (2,1.9) -- (0.1,1.9) -- cycle;
+\fill[yellow!20] (2.1,0.1) -- (5,0.1) -- (5,1.9) -- (2.1,1.9) -- cycle;
+\fill[green!20] (5.1,0.1) -- (7.5,0.1) -- (7.5,1.9) -- (5.1,1.9) -- cycle;
+\fill[green!20] (10,0.1) -- (11.9,0.1) -- (11.9,1.9) -- (10,1.9) -- cycle;
+\node at (1,1) {\begin{tabular}{c}\code{DOS}\\ \code{HEADER}\end{tabular}};
+\node at (3.5,1) {\begin{tabular}{c}\code{PE/NT}\\ \code{HEADER}\end{tabular}};
+\node at (6.2,1) {\begin{tabular}{c}\code{SECTION}\\ \code{1}\end{tabular}};
+\node at (10.9,1) {\begin{tabular}{c}\code{SECTION}\\ \code{k}\end{tabular}};
+\node at (8.8,1) {\huge \ldots};
+%\node (A) at(0,0) {\includegraphics[width=7cm]{img/pe_basic_structure.png}};
+%\node (B)[right=10mm of A] {\includegraphics[width=7cm]{img/kaitai_view_on_pe.png}};
+\end{tikzpicture}
+
+
+\medskip
+Voici un extrait d'un exécutable vu sous \url{https://ide.kaitai.io} : 
+
+\medskip
 \noindent
 \begin{tikzpicture}
 \node (A) at(0,0) {\includegraphics[width=7cm]{img/pe_basic_structure.png}};
-\node (B)[right=10mm of A] {\includegraphics[width=7cm]{img/kaitai_view_on_pe.png}};
+\node (B)[below right=-46mm and 2mm of A] {\includegraphics[width=7cm]{img/kaitai_view_on_pe.png}};
 \end{tikzpicture}
 
-Le format des exécutables modernes de \Windows\ est le format PE, lui-même une extension du format DOS (celui des années 80). En quelques lignes, 
+%Le format des exécutables modernes de \Windows\ est le format PE, lui-même une extension du format DOS (celui des années 80). En quelques lignes, 
 
 \begin{itemize}
-	\item La première partie est la partie DOS. Ells suit une structure qui s'appelle \code{IMAGE\_DOS\_HEADER}, accessible dans \code{"Windows.h"}. Elle commence par le 'magic' \code{4d 5a}, \code{MZ} en \code{ascii}, "MZ" étant les initiales de Mark Zbikowski, un des développeurs de DOS.  A l'octet \code{3c}, on trouve la position du point d'entrée de la structure propre au format PE (Portable Executable).
-	\item La partie \code{PE} commence par \code{PE} en \code{ascii}, \code{50 45}. Elle suit la structure \code{\_IMAGE\_NT\_HEADERS} dont on reparlera plus en détail ci-dessous.
+	\item La première partie est la partie DOS. Ells suit une structure qui s'appelle \code{IMAGE\_DOS\_HEADER}, accessible dans \code{"Windows.h"}. Elle commence par le 'magic number' \code{4d 5a}, \code{MZ} en \code{ascii}, "MZ" étant les initiales de Mark Zbikowski, un des développeurs de DOS.  A l'octet \code{3c}, on trouve la position du point d'entrée de la structure propre au format PE (Portable Executable).
+	\item La partie \code{PE} commence par "PE" en \code{ascii}, \code{50 45}. Elle suit la structure \code{\_IMAGE\_NT\_HEADERS} dont on reparlera plus en détail ci-dessous.
 	\item Chaque section de l'exécutable est spécifiée dans l'\code{OptionalHeader}. Elles apparaîssent en séquence après le header \code{\_IMAGE\_NT\_HEADERS}. 
-	\item Enfin, le code se clôt avec un certificat.  
+	%\item Enfin, le code se clôt avec un certificat.  
 \end{itemize}
 
-La partie \code{PE} commence par \code{PE} en \code{ascii}, \code{50 45}. Elle suit la structure 
+La partie \code{PE} est spécifiée comme suit : %commence par \code{PE} en \code{ascii}, \code{50 45}. Elle suit la structure 
 \begin{minted}{C}
 typedef struct _IMAGE_NT_HEADERS {
-  DWORD                   Signature;
-  IMAGE_FILE_HEADER       FileHeader;
+  DWORD                   Signature;	//magic=50 45 00 00
+  IMAGE_FILE_HEADER       FileHeader;	
   IMAGE_OPTIONAL_HEADER32 OptionalHeader;
 } IMAGE_NT_HEADERS32;
 \end{minted} 
 
-La signature est la suite de caractères \code{50 45 00 00}. La structure \code{FileHeader} contient les informations suivantes : 
+%La signature est la suite de caractères \code{50 45 00 00}.
+ La structure \code{FileHeader} contient les informations suivantes : 
 
 \begin{minted}{C}
 typedef struct _IMAGE_FILE_HEADER {
@@ -755,7 +781,7 @@ typedef struct _IMAGE_FILE_HEADER {
 } IMAGE_FILE_HEADER,
 \end{minted}
 
-La partie \code{OptionalHeader} contient toutes les informations nécessaires au chargement des sections. 
+La partie \code{OptionalHeader} contient toutes les informations nécessaires au chargement du programme en mémoire, et en particulier la celles concernant les sections. 
 
 \begin{minted}{C}
 typedef struct _IMAGE_OPTIONAL_HEADER {
@@ -793,7 +819,7 @@ IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
 } IMAGE_OPTIONAL_HEADER32
 \end{minted}
 
-Arrivent les \code{IMAGE\_DATA\_DIRECTORY}. Ce sont des tables/des structures  qui contiennent des informations complémentaires (par ordre d'importance). Chaque entrée a le type : 
+Arrivent les \code{IMAGE\_DATA\_DIRECTORY}. Ce sont des tables/des structures  qui contiennent des informations complémentaires (listées ici par ordre d'importance). Chaque entrée a le type : 
 
 \begin{minted}{C}
 typedef struct _IMAGE_DATA_DIRECTORY {
@@ -801,7 +827,7 @@ typedef struct _IMAGE_DATA_DIRECTORY {
   DWORD Size;
 } IMAGE_DATA_DIRECTORY
 \end{minted}
-qui donne la position relative de la structure en mémoire et sa taille. Il y a 16 structures/tables :  
+qui donne la position relative de la structure en mémoire et sa taille. Il y a 16 structures/tables (listées ici par ordre d'importance) :  
 
 \bigskip
 \begin{tabular}{| l | l |}
@@ -837,6 +863,8 @@ La table IAT (Import Address Table) contient une structure liant le nom des fonc
 
 \subsection{Reconstruire l'exécutable à partir de l'adresse de base}
 
+Pour modéliser l'exécutable, nous allons employer la structure suivante : 
+
 \begin{minted}{C}
 typedef struct{
 	PIMAGE_DOS_HEADER     dos_header;
@@ -846,8 +874,10 @@ typedef struct{
 
 int parse_pe_in_mem(void *p, pefile32_t & pe){
 	pe.dos_header = (PIMAGE_DOS_HEADER) p;
-	pe.nt_header = (PIMAGE_NT_HEADERS) (((char*) p) + pe.dos_header->e_lfanew);
-	pe.sections = (PIMAGE_SECTION_HEADER) ((char*)pe.nt_header + sizeof(IMAGE_NT_HEADERS));
+	pe.nt_header = (PIMAGE_NT_HEADERS) 
+		(((char*) p) + pe.dos_header->e_lfanew);
+	pe.sections = (PIMAGE_SECTION_HEADER) 
+		((char*)pe.nt_header + sizeof(IMAGE_NT_HEADERS));
 	return 0;
 }
 \end{minted}
@@ -1120,6 +1150,147 @@ type_printf f = (type_printf) get_fun_by_name(msvcr, "printf");
 f("Hello world");
 ...}
 \end{minted}
+
+\paragraph{En jouant avec la table d'import}~
+
+Nous avons vu que les adresses des fonctions importées étaient stockées en mémoire. Ce n'est pas très difficile de les modifier. Voici un exemple ou on échange l'adresse de \code{printf} et celle de \code{scanf}.
+
+\begin{minted}[linenos]{C}
+uint32_t * get_fun(uint32_t fun, void * base_pointer){
+	uint32_t *p = (uint32_t *) base_pointer;
+	while (1) { if (*p == fun) return p;
+	  p++;
+	}
+	return NULL;
+}
+
+int _tmain(int argc, _TCHAR* argv[]){
+	uint32_t atscan = (uint32_t) scanf, atprint = (uint32_t) printf;
+	uint32_t * pos_printf = get_fun(atprint, _tmain );
+	uint32_t * pos_scanf = get_fun(atscan, _tmain);
+	DWORD old;
+	VirtualProtect(pos_printf, 0x10, PAGE_READWRITE, &old);
+	*pos_printf = atscan;
+	*pos_scanf = atprint;
+	...
+	scanf("Hello world %d", sum);
+	...
+\end{minted}
+
+La fonction \code{get\_fun} retrouve la position dans l'IAT où la fonction \code{fun} est stockée. Implicitement, on fait l'hypothèse que l'adresse cherchée est alignée avec le pointeur de base modulo 4 (la taille d'un pointeur \code{uint32\_t}). La table IAT se trouve souvent dans une section READONLY, d'où l'appel à \code{VirtualProtect}
+
+
+\begin{commentaire}{Pour aller plus loin}
+	Reconstituer une table d'import à la manière de l'algorithme du système. Attention, cela peut prendre du temps. 
+\end{commentaire}
+
+\section{Contre le debug}
+
+Debugger sert aussi à la rétro-ingénierie du code. Les malwares sont protégés contre cela. Ils vont employer différentes techniques anti-debug. En voici un petit nombre. 
+
+\paragraph{En demandant à \Windows}
+
+\begin{minted}{C}
+#include "Windows.h"
+...
+if (IsDebuggerPresent()){
+	//diversion
+}
+...
+\end{minted}
+
+Tout l'art est alors d'avoir une bonne diversion, une qui ne met pas la puce à l'oreille du défenseur. 
+
+\paragraph{En demandant encore à \Windows}
+
+\begin{minted}{C}
+#include "Windows.h"
+...
+DWORD res;
+CheckRemoteDebuggerPresent()){
+//diversion
+}
+...
+\end{minted}
+
+Tout l'art est alors d'avoir une bonne diversion, une qui ne met pas la puce à l'oreille du défenseur. 
+
+\begin{minted}{C}
+#include "Windows.h"
+...
+BOOL res;
+CheckRemoteDebuggerPresent( GetCurrentProcess(),&res);
+if( res)  {
+  //diversion
+}
+...
+\end{minted}
+
+\begin{commentaire}{Mais pourquoi donc ?}
+	Mais à quoi peut servir la fonction \code{CheckRemoteDebuggerPresent} ? Quand un processus est débuggé, il "emet" des interruptions de débug. Celles-ci sont rattrapées par un handler d'exception. Mais il n'est pas prévu que deux handlers s'occupent de la même exception. Et de ce fait, utiliser deux débugger peut poser problème.  
+\end{commentaire}
+
+\paragraph{Pareil, mais sans demander}~
+
+
+Vu à la section~\ref{sec:peb}, la structure PEB contient un flag "DEBUG" : 
+
+\begin{minted}{C}
+...
+PPEB ppeb = ...
+if (ppeb->BeingDebugged){
+  //diversion
+}
+...
+\end{minted}
+
+Dans une version "hack" : 
+
+\begin{minted}{C}
+...
+PPEB ppeb = ...
+char * p = (char *) ppeb;
+if (p[104] & 0x70){
+//diversion
+}
+...
+\end{minted}
+
+\begin{commentaire}{Mais d'où cela vient il ?}
+Faisons confiance à la communauté. Même si l'octet 104 est dans un champs non renseigné de la documentation \Windows, il y a toujours quelqu'un qui est allé regarder ce qui s'y passe. Ici, citons : \url{https://www.aldeid.com/wiki/PEB-Process-Environment-Block/NtGlobalFlag}.
+
+L'octet en question contient des flags pour la vérification du tas. Le flag est détourné dans ce cas.   
+\end{commentaire}
+
+\paragraph{Par vérification de l'intégrité du code}~
+
+\medskip
+Quand on pose un point d'arrêt sur une instruction, le debugger modifie le code exécuté en remplaçant l'instruction par 
+\mintinline{asm}{int3}
+autrement dit \code{CC}. Cette instruction déclenche une interruption (de DEBUG) qui est rattrapée par le debugger. Mais un attaquant peut prévoir de protéger une fonction et vérifier son intégrité. Le code suivant interdit la modification du code de \code{fonction\_critique}.
+
+\begin{minted}[linenos]{C}
+__declspec(noinline) int fonction_critique(int x, int y){
+	int z = x+y;
+	for(int i = 0 ; i < z ; i += 2){
+		printf("%d", i+z);
+		z+=1;
+	}
+	return z;
+}
+
+int _tmain(int argc, _TCHAR* argv[]){	
+	p = (char *) fonction_critique;
+	char s = 0;
+	while( p != (char *)_tmain){ s += *p; p++;}
+	printf("%d", s);
+	if (s != -113) printf("good joke\n");
+	else { int z = fonction_critique(argc, argc); }
+	...
+\end{minted}
+
+La valeur $-113$ a été déterminée par une première exécution. Implicitement, la boucle de la ligne 13 fait l'hypothèse que la fonction \code{fonction\_critique} apparaît en mémoire avant la fonction \code{\_tmain}. 
+
 
 
 
