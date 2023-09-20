@@ -3,6 +3,8 @@
 
 \usepackage{xspace}
 \usepackage{minted}
+\usemintedstyle{xcode}
+
 \usepackage{url}
 \usepackage{tikz}
 \usetikzlibrary{positioning,shapes}
@@ -159,7 +161,7 @@ désignent respectivement le mot, le mot double, le mot quadruple stocké à l'a
 
 \chapter{La machine au microscope}
 
-Un ordinateur est l'assemblage de matériels parmi lesquels on trouvera un (ou plusieurs) processeur, des périphériques (claviers, souris, joysticks), de la mémoire (sous diverses formes), un moniteur (qui peut avoir son propre processeur), etc. Au démarrage d'une machine, un premier programme---qualifié de \emph{bootstrap}---met en route le système d'exploitation, lui-même un programme. Le système d'exploitation est en charge d'orchestrer l'utilisation du processeur, une ressource partagée, par l'ensemble des programmes. 
+Un ordinateur est l'assemblage de matériels parmi lesquels on trouvera un (ou plusieurs) processeur, des périphériques (claviers, souris, joysticks), de la mémoire (sous diverses formes), un moniteur (qui peut avoir son propre processeur), etc. Au démarrage d'une machine, un premier programme---qualifié de \emph{bootstrap}---met en route le système d'exploitation, lui-même un programme. Le système d'exploitation est en charge d'orchestrer l'utilisation du processeur, une ressource partagée par l'ensemble des programmes. 
 
 Un ordinateur est donc un système qui peut être vu à plusieurs niveaux~ : on peut partir du "hardware", c'est-à-dire du matériel, on peut prendre le "point de vue" du logiciel d'un utilisateur ou celui du système d'exploitation (OS). \'Evidemment, ces niveaux ne sont pas complètement déconnectés les uns des autres. Dans ce chapitre, nous proposons un modèle de la machine qui rend compte du comportement d'un logiciel exécuté en mode "user", le mode le moins privilégié et le plus commun.
 
@@ -211,6 +213,9 @@ Une image un peu plus précise de la mémoire est donc :
 \medskip
 \begin{memory}
 m = Memory(12, 0.6);
+m.zone(0, 3, "red!10")
+m.zone(3,6, "blue!10")
+m.zone(9, 12, "green!10")
 m.mark(0, "0")
 m.mark(11, "FF\^ {}8")
 m.content(0, "AB")
@@ -223,9 +228,6 @@ m.content(4, "$\ldots$")
 m.add_node((7,0.25), "$\ldots$")
 m.bar(9)
 m.mark(6, "0x2000")
-#BEFORE: \fill[color=red!10] (0,0) -- (3,0) -- (3,0.6) -- (0,0.6) -- cycle;
-#BEFORE: \fill[color=blue!10] (3,0) -- (6,0) -- (6,0.6) -- (3,0.6) -- cycle;
-#BEFORE: \fill[color=green!10] (9,0) -- (12,0) -- (12,0.6) -- (9,0.6) -- cycle;
 \end{memory}
 où les couleurs rouge, bleu, vert désignent des droits spécifiques en mémoire. 
 
@@ -251,7 +253,7 @@ Les registres sont des zones de mémoires directement implantées sur le process
 
 Les registres courants sont : {\tt rax, rbx, rcx, rdx, rsi, rdi, rsp, rbp, r8, ..., r15, rip, rflags}. Ils font tous 8 octets (64 bits). Ils sont prévus pour contenir des adresses ou des entiers.
 
-Pour les calculs avec les flottants, il y a des registres spécialisés. Ce sont les registres sont {\tt xmm0, ..., xmm7}. Ces registres font 128 bits (et même plus si on prend leur forme {\tt ymmi} (256 bits) ou {\tt zmmi} (512 bits)). 
+Pour les calculs avec les flottants, il y a des registres spécialisés. Ce sont les registres sont {\tt xmm0, ..., xmm7}. Ces registres font 128 bits (et même plus si on considère leurs formes {\tt ymmi} (256 bits) ou {\tt zmmi} (512 bits)). 
 
 \begin{commentaire}{Les registres ont une histoire}
 Les quatre premiers registres datent des premiers processeurs {\sc intel}, le 8080, dans les années 1970. Ils faisaient au début 8 bits. Et il fallait les combiner pour obtenir des nombres au dessus de 255.
@@ -302,7 +304,7 @@ Quelles sont les propriétés des registres ? Premier point, les registres ont d
 	Dans la description d'une valuation ci-dessus, le registre {\tt xmm0} qui est dans $\REG$ prend ses valeurs dans $\QWORD$ alors qu'il fait 16 octets (2 $\QWORD$ par conséquent). Comment faire mieux ? 
 \end{commentaire}
 	
-Deuxième point. Les registres permettent de désigner des zones de mémoire. Par défaut, la zone est la valeur du registre. Toutefois, pour les registres de segments, qui ne font deux octets, la zone indiquée est différente. Le registre $\rfs$ par exemple fait référence au mode d'adressage du processeur (via des tables accessibles en mode kernel). La valeur donnée par $\rfs$ ne correspond pas à la valeur du registre mais au contenu indexé dans une table. Faisons abstraction de ce mécanisme, nous \emph{ferons comme si} le registre désignait une valeur arbitraire en mémoire.
+Deuxième point. Les registres permettent de désigner des zones de mémoire. Par défaut, la zone est désignée par la valeur du registre. Toutefois, pour les registres de segments, qui ne font deux octets, la zone indiquée est différente. Le registre $\rfs$ par exemple fait référence au mode d'adressage du processeur (via des tables accessibles en mode kernel). L'adresse  donnée par le registre $\rfs$ ne correspond pas à la valeur du registre mais au contenu indexé dans une table. Faisons abstraction de ce mécanisme, nous \emph{ferons comme si} le registre désignait une valeur arbitraire en mémoire.
 
 \begin{minted}{c}
 unsigned short fs;
@@ -329,7 +331,7 @@ Une instruction est une suite d'octets associée à une sémantique (qui spécif
 	
 L'ensemble des instructions, noté $\Instr$, a la propriété d'être préfixe. C'est à dire qu'il n'y a pas deux instructions dont l'une est le début de l'autre.  	
 \end{formalisme}
-Voici un 6 instructions machine : 
+Voici un exemple de 6 instructions machine : 
 \begin{minted}{asm}
 90
 55
@@ -342,14 +344,14 @@ C3
 
 On peut maintenant résumer le fonctionnement d'une machine.  L'exécution d'un programme procède de la manière suivante. A chaque étape, le processeur lit les cases mémoires $M[\rip], M[\rip+1], M[\rip+2], \ldots$ Trois possibilités :  soit un préfixe\footnote{début de la suite.} de la suite correspond à une instruction machine  et la zone lue a les droits en lectuRe et en eXecution, auquel cas l'instruction est exécutée. Soit il y a un problème de droit ou bien encore la suite ne correspond pas à une instruction, dans ce cas un mécanisme d'exception prend en charge l'erreur. 
 
-Ainsi, si la valeur de  $M[\rip]$ est $\hexa{90}$, le processeur reconnaît l'instruction machine \code{nop} qui consiste à ne rien faire\footnote{En fait, elle incrémente tout de même la valeur de \rip\ de $1$. }. Si la suite commence par : \code{48,83,C0, 09},  il s'agit de l'instruction qui rajoute $9$ au registre \rax\ et passe à l'instruction suivante\footnote{C'est-à-dire incrémente \rip de $4$.}.  
+Ainsi, si la valeur de  $M[\rip]$ est $\hexa{90}$, le processeur reconnaît l'instruction machine dite \code{nop} qui consiste à ne rien faire\footnote{En fait, elle incrémente tout de même la valeur de \rip\ de $1$. }. Si la suite commence par : \code{48,83,C0,09},  il s'agit de l'instruction qui rajoute $9$ au registre \rax\ et passe à l'instruction suivante\footnote{C'est-à-dire incrémente \rip de $4$.}.  
 
 Le programme  poursuit son exécution tant qu'une \emph{interruption} ne se produit pas. Les interruptions (en règle générale externes au programme en cours) peuvent apparaître à diverses occasions, une instruction illégale comme nous avons vu plus haut, une modification au niveau matériel ou bien la frappe d'une touche clavier. Suite à l'interruption, et selon une certaine politique de priorité, le système d'exploitation "reprend" la main, en d'autres termes, la valeur de \rip est modifiée directement par le processeur, en dehors du contrôle du programme. Le système rendra éventuellement la main au programme plus tard. 
 
 \begin{formalisme}{Exécution}
 \'Etant donné une configuration $C = (M, R) \in \Memory \times \vReg$, la machine va lire la suite d'octets à partir de $\rip$. Trois cas : 
 \begin{itemize}
-	\item Lors de la lecture, il y a une adresse $x$ pour laquelle $X \not\in M.rights[x]$. Une exception est envoyée au système. 
+	\item Lors de la lecture, il y a une adresse $x \in [\rip, \rip+1, \ldots]$ pour laquelle $X \not\in M.rights[x]$. Une exception est envoyée au système. 
 	\item La suite d'octets ne correspond pas à une instruction. Dans ce cas, une exception est également levée. 
 	\item Sinon, l'instruction est exécutée. Ce qui a pour effet de modifier la configuration. La modification étant spécifiée par l'instruction elle même.
 \end{itemize}
@@ -372,7 +374,7 @@ La correspondance entre le code assembleur et le code machine peut se retrouver 
 La liste des instructions se trouve dans le(s) manuel(s) du(es) constructeur(s) du processeur. Par exemple, on retrouvera pour INTEL/x86\_64 les instructions à \cite{IntelSetInstruction}. Attention, l'ensemble des instructions varie au cours du temps, certaines apparaissent, d'autres disparaissent. Par la suite, on note $\Instr$ l'ensemble des instructions. 
 
 \begin{commentaire}{Quelques mots sur l'encodage et la structure des instructions}
-Une \textit{instruction} se décompose selon le format\footnote{Plus de détails à \url{http://ref.x86asm.net/coder32.html} par exemple.} :%TODO dire qu'en bytes bah c'est quasiment arei
+L'encodage des instruction se nomme ISA (Instruction Set Architecture). En \xquatre, une \textit{instruction} se décompose selon le format\footnote{Plus de détails à \url{http://ref.x86asm.net/coder32.html} par exemple.} :%TODO dire qu'en bytes bah c'est quasiment arei
 \begin{eqnarray*}
 	\Instr& ::=& \code{prefix}_1 \dots \code{prefix}_k \; \code{opcode} \; \code{Arg}_1 \dots \code{Arg}_\ell\\
 	\code{Arg} &::=& \code{Imm}\ |\ \Reg\ |\ \code{Mem}\\
@@ -471,7 +473,45 @@ est encodée \code{66,81,54,8B,12,57,12}:
 
 \chapter{Rappels en C et assembleur}
 
-Ce chapitre n'est pas un cours de C, mais des rappels de ce qui sera utilisé par la suite. 
+Ce chapitre n'est pas un cours d'assembleur, pas plus qu'un cours de C, mais des rappels de ce qui sera utilisé par la suite. 
+
+\section{Assembleur MASM}
+
+Nous présentons l'assembleur {\tt masm}, un des nombreux assembleurs sous \xquatre. Un programme assembleur est donné par une liste d'énoncés, c'est-à-dire des instructions ou des données explicites. 
+
+Le code est structuré sous forme de sections, chacune représentant un bloc de mémoire ayant des droits spécifiques. On va retrouver ainsi traditionnellement une section ".text" pour les instructions, une section ".data" pour les variables globales, etc. 
+
+Commençons par "Hello world" écrit en syntaxe {\tt masm} :
+
+\begin{minted}[linenos]{asm}
+.model flat,stdcall ; memory=flat, stdcall = extern function
+include \masm32\include\kernel32.inc
+includelib \masm32\lib\msvcrt.lib ; Some default includes :P
+printf proto C :vararg 	; declaration of printf usage
+
+.data
+Text       db "Hello World",0
+
+.code
+start:
+	mov eax, offset Text
+	push eax ; Push text to the stack
+	call printf 
+	pop eax ; restore the stack
+	push 0 ; Exit code 0 (Success)
+	call ExitProcess
+end start
+\end{minted}
+
+Le code binaire produit contient trois sections, un header, une section ".text" avec des droits RX qui contient les instructions (mentionné \code{.code}, ligne 9), une section ".data" qui contient les variables globales du programme (mentionné \code{.data}, ligne 6). 
+
+Les énoncés comme 
+\mint{asm}{Text db "Hello word", 0} décrivent le contenu de la mémoire à une position nommée "Text", octet par octet. 
+Les énoncés comme \mint{asm}{push eax} décrivent le contenu de la mémoire, mais en utilisant la syntaxe assembleur des instructions. Il eut été équivalent d'écrire : 
+\mint{asm}{db "P"}
+sachant que le code {\tt ascii} de "P" est \code{0x50 == push eax}. 
+
+Venons en maintenant au langage C. 
 
 \section{Manipulations de pointeurs, formats, et joyeusetés}
 
@@ -479,16 +519,16 @@ Quelques lignes à connaître par c\oe ur.
 
 \begin{minted}[linenos]{C}
 int _tmain(int argc, _TCHAR* argv[]){
-int i = 0x12345678, j = 32;
-printf("[%p] = %d, [%p] = %d \n", &i, i, &j, j );
-char *p = (char *) & i;
-for(int k = 0 ; k < 4 ; ++k) printf("%02x ", p[k] & 0xff);
-uint32_t a = (uint32_t) &i;
-int *k = (int *) a;
-k--;
-printf("k = [%p], p = [%p]\n", k);
-*k += 3;//k[0] = 3;
-printf("%d\n", j);
+	int i = 0x12345678, j = 32;
+	printf("[%p] = %d, [%p] = %d \n", &i, i, &j, j );
+	char *p = (char *) & i;
+	for(int k = 0 ; k < 4 ; ++k) printf("%02x ", p[k] & 0xff);
+	uint32_t a = (uint32_t) &i;
+	int *k = (int *) a;
+	k--;
+	printf("k = [%p], p = [%p]\n", k);
+	*k += 3;//k[0] = 3;
+	printf("%d\n", j);
 \end{minted}
 
 Dont voici le résultat sur la console : 
@@ -619,7 +659,7 @@ int3        ; interruption, utilisée par le debugger
 
 \chapter{De la machine au programme}
 
-Lorsqu'on double-clique sur un programme, il est exécuté. Le système d'exploitation va mettre en place une mémoire virtuelle, charger les bibliothèques, initialiser les registres, en d'autres termes, préparer la configuration initiale du programme. Dans ce chapitre, on va voir ce qui se passe plus en détails. 
+Lorsqu'on double-clique sur un programme, il est exécuté. Le système d'exploi\-tation va mettre en place la mémoire virtuelle pour le processus, charger les bibliothèques, initialiser les registres, en d'autres termes, préparer la configuration initiale du programme. Dans ce chapitre, on va voir ce qui se passe plus en détails. 
 
 \section{Le programme en mémoire}
 
@@ -643,7 +683,7 @@ int _tmain(int argc, char *argv[]){
 
 Ce programme montre les quatre grandes zones de mémoire visibles (avec un des droits R, W, X) à l'utilisateur :  le programme lui-même, la pile, le tas, et la zone des bibliothèques partagées. Plus en détail : 
 \begin{itemize}
-	\item La pile contient typiquement : les variables locales des fonctions (\code{i, j}), les retours des fonctions. On retrouve donc une adresse dans la pile à la ligne 7. 
+	\item La pile contient typiquement : les variables locales des fonctions (\code{i, j}), les adresses après un appel de fonctions. On retrouve donc une adresse dans la pile à la ligne 7. 
 	\item Le tas contient toutes les données allouées dynamiquement, typiquement avec la fonction \code{malloc}, ligne 9.  
 	\item   Le programme va contenir les instructions (\code{main}, ligne 10), les variables globales (\code{a},\code{b}, ligne 8), et différentes ressources (icones, etc). 
 	\item  Enfin, les DLLs ont la même structure que l'exécutable lui-même (\code{msvcr.dll} qui contient le code de \code{printf}, ligne 11). Elles vont avoir leur propre pile, leur propre tas, etc. 
@@ -657,7 +697,7 @@ m = Memory(12, 0.6)
 m.zone(6,8,"red!10")
 m.mark(6,"EXE")
 m.content(6,"$\code{4D}\ldots$")
-m.zone(1,2,"yellow!20")
+m.zone(1,2,"purple!20")
 m.mark(1.5, "STACK")
 m.zone(3.5,5,"green!20")
 m.mark(4.2, "HEAP")
@@ -723,19 +763,39 @@ Un fichier exécutable \Windows\ contient :
 \end{itemize} 
 
 \begin{tikzpicture}
-\fill[blue!30] (0,0) -- (12,0) -- (12,2) -- (0,2) -- cycle;
+\fill[blue!30] (0,0) -- (14,0) -- (14,2) -- (0,2) -- cycle;
 \fill[red!20] (0.1,0.1) -- (2,0.1) -- (2,1.9) -- (0.1,1.9) -- cycle;
 \fill[yellow!20] (2.1,0.1) -- (5,0.1) -- (5,1.9) -- (2.1,1.9) -- cycle;
 \fill[green!20] (5.1,0.1) -- (7.5,0.1) -- (7.5,1.9) -- (5.1,1.9) -- cycle;
-\fill[green!20] (10,0.1) -- (11.9,0.1) -- (11.9,1.9) -- (10,1.9) -- cycle;
+\fill[green!20] (7.6,0.1) -- (9.6,0.1) -- (9.6,1.9) -- (7.6,1.9) -- cycle;
+\fill[green!20] (12,0.1) -- (13.9,0.1) -- (13.9,1.9) -- (12,1.9) -- cycle;
 \node at (1,1) {\begin{tabular}{c}\code{DOS}\\ \code{HEADER}\end{tabular}};
 \node at (3.5,1) {\begin{tabular}{c}\code{PE/NT}\\ \code{HEADER}\end{tabular}};
-\node at (6.2,1) {\begin{tabular}{c}\code{SECTION}\\ \code{1}\end{tabular}};
-\node at (10.9,1) {\begin{tabular}{c}\code{SECTION}\\ \code{k}\end{tabular}};
-\node at (8.8,1) {\huge \ldots};
-%\node (A) at(0,0) {\includegraphics[width=7cm]{img/pe_basic_structure.png}};
-%\node (B)[right=10mm of A] {\includegraphics[width=7cm]{img/kaitai_view_on_pe.png}};
+\node at (6.2,1) {\begin{tabular}{c}\code{SECTION}\\ \code{HEADER}\end{tabular}};
+\node at (8.4,1) {\begin{tabular}{c}\code{SECTION}\\ \code{1}\end{tabular}};
+\node at (12.9,1) {\begin{tabular}{c}\code{SECTION}\\ \code{k}\end{tabular}};
+\node at (10.2,1) {\huge \ldots};
 \end{tikzpicture}
+
+Ceci correspond à la structure C suivante : 
+
+\begin{minted}{C}
+typedef struct{
+PIMAGE_DOS_HEADER     dos_header;
+PIMAGE_NT_HEADERS   nt_header;
+PIMAGE_SECTION_HEADER sections;
+} pefile32_t;
+\end{minted}
+
+
+\medskip
+Globalement, le fichier contient : 
+\begin{itemize}
+	\item des informations pour préparer la zone de l'exécutable,
+	\item des informations pour mettre en place les DLL,
+	\item et des informations pour préparer la pile et le tas.
+\end{itemize}
+
 
 
 \medskip
@@ -753,7 +813,7 @@ Voici un extrait d'un exécutable vu sous \url{https://ide.kaitai.io} :
 \begin{itemize}
 	\item La première partie est la partie DOS. Ells suit une structure qui s'appelle \code{IMAGE\_DOS\_HEADER}, accessible dans \code{"Windows.h"}. Elle commence par le 'magic number' \code{4d 5a}, \code{MZ} en \code{ascii}, "MZ" étant les initiales de Mark Zbikowski, un des développeurs de DOS.  A l'octet \code{3c}, on trouve la position du point d'entrée de la structure propre au format PE (Portable Executable).
 	\item La partie \code{PE} commence par "PE" en \code{ascii}, \code{50 45}. Elle suit la structure \code{\_IMAGE\_NT\_HEADERS} dont on reparlera plus en détail ci-dessous.
-	\item Chaque section de l'exécutable est spécifiée dans l'\code{OptionalHeader}. Elles apparaîssent en séquence après le header \code{\_IMAGE\_NT\_HEADERS}. 
+	\item Le nom, la taille, la position relative, les droits de chaque section de l'exécutable sont spécifiés en séquence  après le header \code{\_IMAGE\_NT\_HEADERS}. 
 	%\item Enfin, le code se clôt avec un certificat.  
 \end{itemize}
 
@@ -781,7 +841,7 @@ typedef struct _IMAGE_FILE_HEADER {
 } IMAGE_FILE_HEADER,
 \end{minted}
 
-La partie \code{OptionalHeader} contient toutes les informations nécessaires au chargement du programme en mémoire, et en particulier la celles concernant les sections. 
+La partie \code{OptionalHeader} contient de nombreuses informations nécessaires au chargement du programme en mémoire. 
 
 \begin{minted}{C}
 typedef struct _IMAGE_OPTIONAL_HEADER {
@@ -819,7 +879,7 @@ IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
 } IMAGE_OPTIONAL_HEADER32
 \end{minted}
 
-Arrivent les \code{IMAGE\_DATA\_DIRECTORY}. Ce sont des tables/des structures  qui contiennent des informations complémentaires (listées ici par ordre d'importance). Chaque entrée a le type : 
+Les éléments du tableau \code{DataDirectory}, de type \code{IMAGE\_DATA\_DIRECTORY}, sont des  tables/des structures  qui contiennent des informations complémentaires (listées ici par ordre d'importance). Chaque entrée a le type : 
 
 \begin{minted}{C}
 typedef struct _IMAGE_DATA_DIRECTORY {
@@ -861,16 +921,56 @@ La table EAT (Export Address Table) contient une structure liant : un nom de fon
 La table IAT (Import Address Table) contient une structure liant le nom des fonctions importées et les addresses correspondantes. Après avoir retrouvé les addresses des fonctions dans la table d'export de la bibliothèque associée, l'OS remplit la table des adresses.  
 \end{commentaire}
 
+Enfin, le code contient une liste d'éléments de type \code{IMAGE\_SECTION\_HEADER} pour chaque section. La structure permet de positionner les octets de la section en mémoire. 
+
+%Il est découpé en blocs de \code{0x400} octets. Le premier bloc comprend les deux headers \code{DOS HEADER} et \code{PE/NT HEADER} qui contiennent les informations pour le chargement du programme en mémoire. Ensuite, on trouve le contenu de chaque sections octet par octet.
+
+Le fichier est structuré en blocs de taille \code{IMAGE\_OPTIONAL\_HEADER.FileAlignment}, en général \code{0x200} ou \code{0x400} octets alors que la mémoire l'est en page de \code{0x1000} octets. Il peut donc y avoir des zones non spécifiées. Typiquement, on retrouvera un écart entre le fichier et la mémoire virtuelle : 
+
+\bigskip
+\begin{memory}
+m = Memory(10,0.6)
+m.content(0,"\code{header}s")
+m.content(2,"\code{.text}")
+m.content(4,"\code{.rdata}")
+m.content(6,"\code{.data}")
+m.content(8,"\code{...}")
+n = Memory(12,0.6,-2)
+n.content(0,"\code{headers}")
+n.content(2.5,"\code{.text}")
+n.content(5,"\code{.rdata}")
+n.content(7.5,"\code{.data}")
+n.content(10,"\code{...}")	
+angles = [(2,2.5),(4,5),(6,7.5),(8,10)]
+lignes = [Path((b-0.5,-1.4),(a,0),(b,-1.4),color="black") for a,b in angles] + [Path((0,0),(0,-1.4),color="black")]
+for a,b in angles:
+	n.zone(b-0.5,b,bgcolor="black!10",color="black")
+for p in [2,4.5,7,9.5,10]:
+	n.bar(p)
+n.mark(0,"\code{400000}",0.5,0)
+n.mark(2.5,"\code{401000}")
+n.mark(5,"\code{402000}")
+n.mark(7.5,"\code{403000}")
+m.mark(0,"\code{0}",0.5,1)
+m.mark(2,"\code{800}",0.5,1)
+m.mark(4,"\code{1600}",0.5,1)
+m.mark(6,"\code{2400}",0.5,1)
+draw(*lignes)
+draw(m,n)
+\end{memory}
+
+Que valent les octets dans la zone grise ? Ils ne sont pas spécifiés. C'est la raison pour laquelle {\sc ida} nous les présente sous la forme de "?" : 
+
+\includegraphics[width=8cm]{img/ida_zone_non_specifiee.png} 
+
+L'adresse \code{0x403200} ne correspond à aucune position dans le fichier. La valeur vient du fait que l'alignement se fait sur \code{0x200}. 
+
+
 \subsection{Reconstruire l'exécutable à partir de l'adresse de base}
 
 Pour modéliser l'exécutable, nous allons employer la structure suivante : 
 
 \begin{minted}{C}
-typedef struct{
-	PIMAGE_DOS_HEADER     dos_header;
-	PIMAGE_NT_HEADERS   nt_header;
-	PIMAGE_SECTION_HEADER sections;
-} pefile32_t;
 
 int parse_pe_in_mem(void *p, pefile32_t & pe){
 	pe.dos_header = (PIMAGE_DOS_HEADER) p;
@@ -994,6 +1094,17 @@ C'est une section prévue pour gérer les Thread (Local Storage). Prévue pour i
 
 Dans ce chapitre, nous montrons des exemples d'obfuscations. Elles sont évidemment innombrables. Ici, nous en faisons un florilège avec l'idée de montrer les mécanismes mis en \oe uvre les plus importants. 
 
+Les obfuscations sont en charge de protéger l'exécutable contre son analyse. Ces dernière sont de plusieurs ordre. 
+
+Premier point. L'analyste peut faire un étude du code via son fichier binaire. On parle d'analyse statique. Il va essayer de reconstituer la liste des instructions du code, instructions qui contiennent la "logique" (la sémantique) de l'exécutable. L'objectif pour la protection est d'empêcher un tel désassemblage. Ce sera l'objet de la section~\ref{sec:anti-desas}. 
+
+Deuxième point. Comme une analyse statique est par principe toujours partielle, il est possible d'exécuter le code pour en déteminer le comportement. Cela peut se faire de plusieurs manières. Le code peut être exécuté par un debugger. L'objectif de la protection est d'empêcher/reconnaître le debugger. Ce sera l'objet de la section~\ref{sec:anti-debug}. 
+
+Troisième point. A supposer que l'analyste arrive à debugger le programme, il faut encore être en mesure de poser des points d'arrêts. Les codes auto-modifiants, ou code produits à la volée, ne sont pas accessibles au départ. Difficile de mettre un point d'arrêt à un endroit qui n'existe pas encore. De manière moins anecdotique, la liste des instruction devient fonction de l'exécution. Cela rend fort relatif les notions de graphes de flot de contrôle. 
+
+Quatrième point. Si l'automodification rendait relatif la notion de code, il reste que l'analyse se réduit à un seul processus. On verra qu'il y a moyen de passer au delà.
+
+
 Les codes proposés ont été testés sur la machine virtuelle du cours. Note~: il s'agit d'une machine WindowsXP 32bits. La plupart des techniques peuvent être transposées pour d'autres OS/architectures. Par ordre de difficulté des transpositions : 
 \begin{itemize}
 	\item un Windows parmi Win7, 8, 10 sous X86, 32 bits,
@@ -1059,7 +1170,7 @@ f("Hello world");
 ...}
 \end{minted}
 
-Une technique vue dans {\tt Duqu}. La fonction \code{printf} est dans la même bibliothèque que \code{scanf} (en l'occurence {\sc msvcrt.dll} dans le monde {\sc windows}). Si la bibliothèque n'est pas modifiée, l'écart en mémoire entre \code{printf} et \code{scanf} est fixé (et peu importe l'ASLR. De ce fait, il suffit de précalculer (Ligne 4) l'écart entre les deux pour retrouver l'adresse de \code{printf}. 
+Une technique vue dans {\tt Duqu}. La fonction \code{printf} est dans la même bibliothèque que \code{scanf} (en l'occurence {\sc msvcrt.dll} dans le monde {\sc windows}). Si la bibliothèque n'est pas modifiée, l'écart en mémoire entre \code{printf} et \code{scanf} est fixé (et peu importe l'ASLR). De ce fait, il suffit de précalculer (Ligne 4) l'écart entre les deux pour retrouver l'adresse de \code{printf}. 
 
 \bigskip
 
@@ -1070,6 +1181,7 @@ m.mark(9,"\\tt scanf")
 m.mark(7, "78B056B4", 0.5, True)
 m.mark(9, "- 78B05B64 = ", 0.5, True)
 m.content(7, "6A 0C \\ldots")
+m.bar(9)
 m.add_node((10.5,1.38), "1200")
 \end{memory}
 
@@ -1186,7 +1298,9 @@ La fonction \code{get\_fun} retrouve la position dans l'IAT où la fonction \cod
 
 \section{Contre le debug}
 
-Debugger sert aussi à la rétro-ingénierie du code. Les malwares sont protégés contre cela. Ils vont employer différentes techniques anti-debug. En voici un petit nombre. 
+Debugger sert aussi à la rétro-ingénierie du code. Les analyses statiques sont limitées, et on peut essayer de retrouver des valeurs critiques en exécutant le programme analysé avec un debugger. 
+
+ Les malwares étant protégés contre leur analyse, ils vont s'attaquer aux débugger. La présence d'un debugger est visible par plusieurs procédés. 
 
 \paragraph{En demandant à \Windows}
 
@@ -1267,7 +1381,7 @@ L'octet en question contient des flags pour la vérification du tas. Le flag est
 \medskip
 Quand on pose un point d'arrêt sur une instruction, le debugger modifie le code exécuté en remplaçant l'instruction par 
 \mintinline{asm}{int3}
-autrement dit \code{CC}. Cette instruction déclenche une interruption (de DEBUG) qui est rattrapée par le debugger. Mais un attaquant peut prévoir de protéger une fonction et vérifier son intégrité. Le code suivant interdit la modification du code de \code{fonction\_critique}.
+autrement dit \code{CC}. Cette instruction déclenche une interruption (de DEBUG) qui est rattrapée par le debugger. Mais un attaquant peut prévoir de protéger une fonction et vérifier son intégrité. Le code suivant interdit de mettre un point d'arret sur le code de la fonction \code{fonction\_critique}.
 
 \begin{minted}[linenos]{C}
 __declspec(noinline) int fonction_critique(int x, int y){
@@ -1280,9 +1394,12 @@ __declspec(noinline) int fonction_critique(int x, int y){
 }
 
 int _tmain(int argc, _TCHAR* argv[]){	
-	p = (char *) fonction_critique;
 	char s = 0;
-	while( p != (char *)_tmain){ s += *p; p++;}
+	for(char * p = (char*) fonction_critique; 
+		p != (char *)_tmain; 
+		p++){ 
+	s += *p;
+	}
 	printf("%d", s);
 	if (s != -113) printf("good joke\n");
 	else { int z = fonction_critique(argc, argc); }
@@ -1290,6 +1407,165 @@ int _tmain(int argc, _TCHAR* argv[]){
 \end{minted}
 
 La valeur $-113$ a été déterminée par une première exécution. Implicitement, la boucle de la ligne 13 fait l'hypothèse que la fonction \code{fonction\_critique} apparaît en mémoire avant la fonction \code{\_tmain}. 
+
+
+\paragraph{Contre un debugger en particulier}~
+
+\medskip Il est aussi possible de tuer le processus en charge de debugger. Occupons nous de \code{windbg}. 
+
+\section{Contre les motifs de compilation}
+
+En utilisant des constructions hors schéma de compilation standard, on peut dérouter les désassembleurs. On rappelle que le désassemblage est problématique quand on rencontre des instructions dont le contrôle (la valeur de {\tt rip} à venir) est déterminée par la configuration (et pas dans le fichier exécutable).  Les instructions immédiatement problématiques sont : 
+\begin{itemize}
+	\item \code{jmp eax}, \code{jmp [eax]}, \code{jmp [eax+4ecx]}, etc,
+	\item \code{call eax}, \code{call [eax]}, etc,
+	\item \code{ret}
+\end{itemize}
+
+Elles demandent l'évaluation d'un registre ou de l'état de la mémloire. Deux tâches indécidables en général. 
+
+Il y a d'autres instructions qui peuvent être problématiques : celles levant une exception vont amener l'intervention du noyau. De ce fait, le programme perd la main et le retour dans le programme ne peut être déterminé simplement. 
+\begin{itemize}
+	\item \code{idiv ebx} peut lancer une \code{EXCEPTION\_INT\_DIVIDE\_BY\_ZERO}.
+	\item \code{int3}, interruption de DEBUG,
+	\item une instruction illégale (mais qui peut être rattrapée par ailleurs), 
+	\item une instruction "normale" mais qui viole un droit en mémoire.	
+\end{itemize}
+
+Venons maintenant aux exemples. 
+
+\paragraph{Via un saut indirect}
+
+
+
+\section{Automodifications}
+
+Dans ce qui a été vu auparavant, nous avions au moins un élément solide sur lequel appuyer l'analyse : la liste des instructions est fixée une fois pour toute. Les retrouver peut être difficile, mais elles ne sont pas fonction des exécutions. Avec les automodifications, le code se transforme lui même en cours d'exécution, la liste des instructions est relative aux exécution, et non plus absolue (présente dans le fichier). 
+
+Commençons par une automodification toute simple : 
+
+\begin{minted}[linenos]{C}
+char fonction[]= {'\x90','\x90','\x90','\xc3'};
+
+typedef void (*typeFonction) (); 
+int main(){
+        typeFonction mf = (typeFonction) &fonction;
+        mf();
+        printf("done");
+	...
+}
+\end{minted}
+
+Le lecteur aura reconnu dans le tableau {\tt fonction} les instructions {\tt 90 = nop} et {\tt c3 = ret}. En d'autres termes, la fonction  fait trois fois rien et s'arrête. Evidemment, ce programme ne fait rien d'intéressant. Toutefois, il fonctionne. D'autre part, il montre qu'en {\sc windows XP}, la mémoire correspondant à la section {\tt .data} a les droits en exécution. Ce n'est plus le cas des {\sc windows} plus modernes.  
+
+On pourra reprocher à ce code d'être présent au départ. C'est vrai, mais il est à un endroit où ce n'est pas prévu. En outre, la variable {\tt fonction} étant un tableau de {\tt char} peut être modifiée au cours du temps. On pourra donc réécrire le code précédent de la manière suivante : 
+
+\begin{minted}[linenos]{C}
+char fonction[]= {'\x90' ^ 42 , '\x90' ^42 ,'\x90' ^42 ,'\xc3' ^ 42};
+
+typedef void (*typeFonction) (); 
+int main(){
+        typeFonction mf = (typeFonction) &fonction;
+        for (int k = 0 ; k < 4 ; k++) fonction[k] ^= 42;
+        mf();
+        printf("done");
+	...
+}
+\end{minted}
+
+Dans ce cas, les instructions correspondant à la {\tt fonction} sont déchiffrée ligne 6, juste avant l'appel  ligne 7.
+
+\paragraph{La gestion des droits de la mémoire}
+
+Il est possible d'enrichir l'exemple qui précède en écrasant du code déjà présent. Dans ce cas, non seulement des instructions apparaissent au cours de l'exécution, mais d'autres disparaissent. La liste des instruction est donc relative à chaque instant. Si on analyse une zone de mémoire, disons que l'on reconnait par exemple une boucle de chiffrement, cette zone est relative à cet instant précis. Plus tard, un code tout à fait différent peut remplacer le contenu présent.
+
+Si on veut modifier le contenu de la section {\tt .text}, on a un petit souci technique. Cette zone de mémoire n'a pas les droits en écriture. Il faut donc faire un appel à {\tt VirtualProtect}, typiquement comme ceci : 
+
+\begin{minted}[linenos]{C}
+char fonction[]= {'\x90', '\x90','\x90','\xc3'};
+
+typedef void (*typeFonction) (); 
+int main(){
+        char *p = (char *) main;
+        typeFonction mf = (typeFonction) p;
+        DWORD old;
+	VirtualProtect(p, 0x4, PAGE_EXECUTE_READWRITE, &old);
+        for (int k = 0 ; k < 4 ; k++) p[k] = fonction[k];// recopie le code
+        mf();
+        printf("done");
+	...
+}
+\end{minted}
+
+\paragraph{La notion de vague}
+
+Nous avons vu que du code produisait du code, et donc que celui-ci devenait relatif aux exécutions. Mais comment distinguer des écritures de données en mémoire  d'écritures d'instructions ? Dans le premier cas, on assiste à une exécution normale, pas dans le second. Il y a un argument qui fait basculer d'un cas à l'autre : si on exécute une instruction à une adresse où il y a eu écriture. Dans notre premier exemple, les instructions étaient {\em déjà là}, il n'y a donc pas eu de réécriture en mémoire. Mais pour tous les autres cas, il y a bien écriture en mémoire (à l'occasion du chiffrement dans un cas, de l'écrasement dans l'autre) suivi d'une exécution d'une instruction à une adresse où il y a eu écriture (lors de l'appel à la fonction {\tt mf}).
+
+On définit les vagues de la manière suivante. Au départ, le programme est considéré à la vague $0$. Il entre à la vague $1$ au moment où une instruction exécutée correspond à une adresse où il y a eu écriture à la vague $0$. Et le mécanisme peut continuer. Il entre à la vague $2$ au moment où une instruction exécutée correspond à une adresse où il y a eu écriture à la vague $1$. Et ainsi de suite. 
+
+\begin{formalisme}{Vague}
+Soit une trace d'exécution d'un programme $P$, c'est-à-dire une suite $(a_0, i_0), (a_1, i_1), (a_2,i_2), \ldots$ où $a_n$ désigne l'adresse de la $n$-ième instruction exécutée et $i_n$ l'instruction elle-même. Pour chaque instant, on note $w(n)$ l'ensemble des adresses des cellules mémoire écrites par l'instruction $i_n$. 
+
+ La vague $0$ est l'instant $0$.  La vague $1$ est le plus petit entier $m$ tel que $a_m \in \cup_{0 \leq n < m} w(n)$. Plus généralement, la vague $k+1$ est le plus petit entier $m$ tel que $a_m \in \cup_{  m_k \leq n < m} w(n)$ où $m_k$ désigne la vague $k$. 
+\end{formalisme}
+
+On pourra noter, de manière incidente, que pendant une vague, par définition, toutes les instructions exécutées sont déjà présentes en mémoire {\em au début de la vague}. Dans le durée de la vague, le code peut être considéré comme {\em non automodifiant}. Par conséquent, le début des vagues est un bon moment pour faire une analyse de code. On sait que toutes les instructions exécutées pendant la vague sont dans le dump de mémoire.
+
+\paragraph{Code caché}
+
+Supposons qu'un analyste observe notre programme en cours d'exécution. Il est possible qu'il fasse un dump de la mémoire à un moment donné. Disons alors que le pointeur d'instruction est à l'adresse $a$. Notre analyste est susceptible de regarder si à cet endroit en mémoire au début de l'exécution on a la même instruction que celle observée dans le dump. Si ce n'est pas le cas, il sait qu'il y a eu automodification. Mais quelle partie du code initial a produit l'instruction en question ?
+
+Si une instruction $i_0$ de la vague $0$ a produit (écrit en mémoire) une instruction $i_1$ (de la vague $1$ par conséquent) qui elle même a produit l'instruction $i_2$  à l'adresse $a$, aucune partie initiale du code n'a produit l'instruction $i_2$ observée. Autrement dit, on a une instruction dont on ne sait pas d'où elle sort.  C'est une bonne raison d'enchaîner les vagues de code.
+
+Mais on peut aller plus loin dans ce scénario. L'instruction $i_2$ peut elle-même écraser l'instruction $i_1$ en mémoire. Si notre analyste a le malheur de faire son dump juste après $i_2$, il observe une instruction $i_2$ qui n'a pas été produite par le code initial et en outre, l'instruction qui l'a produite n'est pas dans le dump mémoire. On dit que la vague $2$ \emph{écrase} la vague $1$.
+
+
+\paragraph{Mais comment écrire du code automodifiant ?}
+
+
+
+
+\section{Défense contre le patch}. 
+
+Rien n'interdit à l'analyste de patcher le code analysé. En faisant cela, il prend le risque de modifier  les exécutions. Mais il pourra quand même observer celles-ci. Si le patch n'est pas trop intrusif, il pourra avoir une bonne vue de ce qui se passe. 
+
+Mais rien n'interdit à l'écrivain du malware de prévoir cela. Il est donc tout à fait possible que le code du malware vérifie sa propre intégrité. Nous avons vu un tel mécanisme dans la section sur les méthodes anti-debug. Mais cela peut être également envisagé de manière plus générale.  Typiquement, le code à la vague $n+1$ est susceptible de vérifier que le code de la vague $n$ n'a pas été modifié par l'analyste.
+
+Dans l'exemple suivant, on vérifie dans le {\tt main} l'intégrité du code de la fonction {\tt f}
+\begin{minted}[linenos]{C}
+int sum(char *p, char *q){
+	int s = 0; 
+	for(; p != q ; p++) s += *p;
+	return s;
+}
+int f(int x, int y){
+...
+}
+int main(){
+	char *p = (char *) f;
+	//int magic = sum(f, (char *) main);
+	int magic = MAGIC;
+	int test = sum(f, (char *) main);
+        if (test != magic){
+        	//patch found
+        } 
+	...
+}
+\end{minted}
+où la constante  {\tt MAGIC} à la ligne 12 correspond à la valeur  précalculée à la ligne 11. 
+
+Quand on veut vérifier l'intégrité d'une fonction, la position de départ est assez simple à définir. Par définition, l'énoncé {\tt f} pour une fonction désigne l'adresse de sa première instruction. Mais comment désigner l'adresse de la dernière instruction de la fonction ? Plusieurs possibilités. On compile la fonction, on regarde son code compilé, et on récupère la taille par analyse manuelle. Deuxième possibilité, on introduit un {\tt canary} dans la fonction qui donnera la position finale. Troisième possibilité, celle qui est faite dans le code précédent, on fait l'hypothèse que le code compilé positionne en mémoire les fonctions les unes après les autres. Si on connait la fonction qui suit, on peut s'y arrêter.
+
+Petite note : ici, on fait l'hypothèse que le compilateur va placer en mémoire la fonction {\tt f} entre la fonction {\tt sum} et la fonction {\tt main}. L'ordre d'apparition des fonctions dans le code compilé est relativement stable. En outre, il est toujours possible de vérifier a posteriori que le code est bien dans l'ordre voulu. 
+
+
+Bien sûr, dans le cas présent, on ne vérifie que l'intégrité de la fonction {\tt main} dans {\tt main}. Et pour ceux qui aiment réfléchir, ce n'est pas si facile de calculer la constante {\tt MAGIC} dans ce cas là. En tous les cas, rien n'interdit qu'une autre fonction, appelée par {\tt main} fasse elle-même le travail. 
+
+
+
+
+\section{Mécanisme multi-processus}
+
 
 
 
