@@ -23,7 +23,7 @@
 	\VerbatimEnvironment\stepcounter{Qcours}%
 	\begin{VerbatimOut}{mem/\theQcours.mem}%
 	}{\end{VerbatimOut}%
-	\input{|"python memory.py mem \theQcours"}%
+	\input{|"python3 memory.py mem \theQcours"}%
 }
 
 \newenvironment{commentaire}[1]{%
@@ -51,6 +51,7 @@
 \usepackage{scontents}
 
 \newcommand{\python}{\textsc{python}\xspace}
+\newcommand{\pintool}{\textsc{pintool}\xspace}
 \newcommand{\C}{\textsc{C}\xspace}
 \newcommand{\java}{\textsc{Java}\xspace}
 \newcommand{\code}[1]{\texttt{#1}}
@@ -72,7 +73,7 @@
 \newcommand{\rfs}{{\tt fs}\xspace}
 
 
-\newcommand{\hexa}[1]{{\tt 0x#1}}
+\newcommand{\hexa}[1]{{\tt #1}}
 \newcommand{\bina}[1]{{\tt 0b#1}}
 
 \newcommand{\REG}{{\tt REG}\xspace}
@@ -115,22 +116,22 @@ Bonne lecture,
 
 \chapter{Prérequis}
 
-\section{Notations}
+\section{Notations} \label{sec:notations}
 
 Nous utilisons par la suite un certain nombre de notations. Essayons de toutes les grouper ici.
 
 %\'Etant donné deux entiers $a \leq b$, on note $[a, \ldots, b] =\{x \in \ZZ \mid a \leq x \leq b\}$. Et $[a, \ldots, b[ = \{ x \in \ZZ \mid a \leq x < b\}$.
 
-%\'Etant donné deux ensembles $X$, $Y$ et $y \in Y$, on note $\underline{y} : X \to Y$ la fonction $x \in X \mapsto y$. \'Etant donné une fonction $f : X \to Y$, $x \in X$ et $y \in Y$, on note $f[x \mapsto y] : X\to Y $ la fonction définie par
-%$$\left\{
-%\begin{array}{ll}
-%x' \mapsto f(x) & \text{ pour tout } x' \in X \text{ tel que }x' \neq x\\
-%x \mapsto y & \text{ sinon}.
-%\end{array}\right.$$
+\'Etant donné deux ensembles $X$, $Y$ et $y \in Y$, on note $\underline{y} : X \to Y$ la fonction $x \in X \mapsto y$. \'Etant donné une fonction $f : X \to Y$, $x \in X$ et $y \in Y$, on note $f[x \mapsto y] : X\to Y $ la fonction définie par
+$$\left\{
+\begin{array}{ll}
+x' \mapsto f(x') & \text{ pour tout } x' \in X \text{ tel que }x' \neq x\\
+x \mapsto y & \text{ sinon}.
+\end{array}\right.$$
 
-%\'Etant donné une fonction $f : X \to Y$, des éléments $x_1, \ldots, x_k \in X$ et $y_1,\ldots, y_k \in Y$, 
-%on peut composer les fonctions $f[x_1 \mapsto y_1, x_2 \mapsto y_2, \ldots, x_k \mapsto y_k] = $
-%$$\left( (\sigma[x_1 \mapsto y_1])[x_2 \mapsto y_2]\cdots\right)[x_k\mapsto y_k].$$ 
+\'Etant donné une fonction $f : X \to Y$, des éléments $x_1, \ldots, x_k \in X$ et $y_1,\ldots, y_k \in Y$, 
+on peut composer les fonctions $f[x_1 \mapsto y_1, x_2 \mapsto y_2, \ldots, x_k \mapsto y_k] = $
+$$\left( (f[x_1 \mapsto y_1])[x_2 \mapsto y_2]\cdots\right)[x_k\mapsto y_k].$$ 
 
 Quand les éléments $x_1, \ldots, x_k$ sont deux à deux distincts, l'ordre importe peu. Par exemple : 
 $$f[x_1\mapsto y_1, x_2 \mapsto y_2] = f[x_2\mapsto y_2, x_1 \mapsto y_1].$$
@@ -139,15 +140,19 @@ $$f[x_1\mapsto y_1, x_2 \mapsto y_2] = f[x_2\mapsto y_2, x_1 \mapsto y_1].$$
 Nous notons pour la suite $\BYTE$ l'ensemble des octets ("byte" en anglais), c'est-à-dire les entiers entre $0$ et $2^8 -1$, $\WORD$ l'ensemble des mots ("word"), les entiers entre $0$ et $2^{16} - 1$,  $\DWORD$ l'ensemble des mots doubles, les entiers entre $0$ et $2^{32} -1$ et  $\QWORD$ l'ensemble des mots quadruples, les entiers entre $0$ et $2^{64} - 1$.
 %\end{formalisme}
 
-Etant donné une fonction $M: \QWORD \to \BYTE$, et deux entiers $a \leq b$, on utilise de temps en temps la notation $M[a] = M(a)$ selon qu'on a un penchant d'informaticien ou de mathématicien. \'Etant donnés deux entiers $a \leq b$, $M[a:b] = (M[a], \ldots, M[b-1])$ est la suite des éléments de $M$ entre $a$ et $b$, la suite étant vide si $a=b$. 
+Etant donné une fonction $M: \QWORD \to \BYTE$, et un entier $a$, on utilise de temps en temps la notation $M[a] = M(a)$ selon qu'on a un penchant d'informaticien ou de mathématicien. \'Etant donnés deux entiers $a \leq b$, $M[a:b] = (M[a], \ldots, M[b-1])$ est la suite des éléments de $M$ entre $a$ et $b$, la suite étant vide si $a=b$. 
 
 On rappelle que dans le modèle little-endian, étant donné $a\in \QWORD$ et $M: \QWORD\to \BYTE$, $$\begin{array}{rcl}
-M_2(a) &=& M[a] + M[a] \times 256\\
-M_4(a) &=& M[a] + M[a]\times 256 + M[a]\times 256^{2} +M[a]\times 256^{3} \\
+M_2(a) &=& M[a] + M[a+1] \times 256\\
+M_4(a) &=& M[a] + M[a+1]\times 256 + M[a+2]\times 256^{2} +M[a+3]\times 256^{3} \\
 M_8(a) &=& \sum_{i = 0}^7 M[a+i] \times {256}^{i}\\
 \end{array}$$
-désignent respectivement le mot, le mot double, le mot quadruple stocké à l'adresse $a$. Par la suite, quand le contexte est claire, on va oublier les indices $2, 4$ et $8$. 
+désignent respectivement le mot, le mot double, le mot quadruple stocké à l'adresse $a$. Par la suite, quand le contexte est clair, on va oublier les indices $2, 4$ et $8$. 
 
+Nous écrivons régulièrement les nombres dans deux formes, la forme décimale et la forme hexadécimale. L'intérêt de la seconde est l'alignement entre l'écriture du nombre et ses octets. Par exemple, le nombre (en version décimale) $a = 98743326112$ s'écrit en hexadécimal   \hexa{16fd8f95a0} et l'on retrouve chaque octet comme suit \hexa{16 fd 8f 95 a0}. 
+ 
+ Par la suite, les hexadécimaux sont présentés avec une fonte de machine à écrire, et les décimaux avec la fonte usuelle. 
+ 
 %On utilise aussi $mem[a:b[ = (mem[a], \ldots, mem[b-1])$, la suite étant vide si $a = b$. 
 
 \begin{commentaire}{Questions/observations}
@@ -165,12 +170,12 @@ Un ordinateur est l'assemblage de matériels parmi lesquels on trouvera un (ou p
 
 Un ordinateur est donc un système qui peut être vu à plusieurs niveaux~ : on peut partir du "hardware", c'est-à-dire du matériel, on peut prendre le "point de vue" du logiciel d'un utilisateur ou celui du système d'exploitation (OS). \'Evidemment, ces niveaux ne sont pas complètement déconnectés les uns des autres. Dans ce chapitre, nous proposons un modèle de la machine qui rend compte du comportement d'un logiciel exécuté en mode "user", le mode le moins privilégié et le plus commun.
 
-Nous ciblons essentiellement le fonctionnement d'un programme sur un processeur \xquatre en version 64 bits, mais les concepts introduits ont une portée plus large. Pour suivre les exemples, il est conseillé d'utiliser une machine virtuelle pour ceux qui auraient une machine sur une autre architecture, {\sc arm} pour l'exemple. 
+Nous ciblons essentiellement le fonctionnement d'un programme sur un processeur \xquatre en version 64 bits, mais les concepts introduits ont une portée plus large. Pour suivre les exemples, il est conseillé d'utiliser une machine virtuelle pour ceux qui auraient une machine sur un autre OS, {\sc linux} pour l'exemple. 
 
 
 \section{Du matériel au virtuel}
 
-Si la machine est un objet physique, carte mémoire, processeurs, caches, souris, etc, elle peut également être vue comme un objet abstrait, mathématique. Cette abstraction est implémentée conjointement par le processeur et par le système d'exploi\-tation. Chacun est conçu pour que l'utilisateur puisse s'appuyer sur cette abstraction. Quand on écrit un programme, on ne s'occupe pas de la tension sur les bus, et c'est bien heureux.
+Si la machine est un objet physique, carte mémoire, processeurs, caches, souris, etc, elle peut également être vue comme un objet abstrait, mathématique. Cette abstraction est implémentée conjointement par le processeur et par le système d'exploi\-tation. Chacun est conçu pour que l'utilisateur puisse s'appuyer sur cette abstraction. Quand on écrit un programme, on ne s'occupe pas de la tension sur les bus ou de la taille des barettes mémoires, et c'est bien heureux.
 
 Cette abstraction se révèle extrêmement simple. Notre modèle de machine se réduit à :
 \begin{itemize}
@@ -180,28 +185,28 @@ Cette abstraction se révèle extrêmement simple. Notre modèle de machine se r
 
 Il y a bien sûr un lien entre les zones de mémoire virtuelle et les caches et autres barrettes physiques de mémoire, mais le programme s'exécute comme s'il \emph{vivait dans le monde virtuel}. Autrement dit, le processeur et l'OS organisent les composants physiques de la machine pour qu'ils apparaissent sous une forme virtuelle auprès des programmes. Pour le programme, l'état de la machine est entièrement décrit par la valeur des registres et la donnée de la mémoire virtuelle. 
 
-Le passage de la mémoire virtuelle à l'architecture physique de la machine va bien au delà de ce polycopié. C'est typiquement l'objet du cours d'architecture. Nous donnerons donc un exposé simplifié du fonctionnement d'une machine. Cette abstraction a un coût: nous ne serons pas en mesure de modéliser des attaques de type {\sc spectre} qui exploitent des effets de cache, voir par exemple \url{https://spectreattack.com}. %Et plus généralement, le modèle est clairement insuffisant pour gérer l'OS lui même ou un driver (c'est-à-dire un programme en mode kernel). 
+Le passage de la mémoire virtuelle à l'architecture physique de la machine va bien au delà de ce polycopié. C'est typiquement l'objet du cours d'architecture. Nous donnerons donc un exposé simplifié du fonctionnement d'une machine. Cette abstraction a un coût: nous ne serons pas en mesure de modéliser des attaques par effet de bord, en particulier celles de type {\sc spectre} qui exploitent des effets de cache, voir par exemple \url{https://spectreattack.com}. %Et plus généralement, le modèle est clairement insuffisant pour gérer l'OS lui même ou un driver (c'est-à-dire un programme en mode kernel). 
 
 %Si on fait abstraction du matériel, et si on se place du point de vue d'un programme en cours d'exécution, l'ordinateur est composé d'un bloc de mémoire de grande taille, dite mémoire virtuelle, et d'un petit nombre de 
 %mémoires de petite taille (au plus quelques octets),  les \emph{registres}. 
 
 \subsection{Mémoire virtuelle}
 
-La \emph{mémoire virtuelle} est un tableau de cellules mémoires, chacune possédant donc un index appelé \emph{adresse}. Chaque cellule contient un octet. Sur une machine 64 bits, il y a \emph{potentiellement} $2^{64}$ cellules\footnote{Dans les faits,  l'adressage ne peut se faire que sur 48 bits, voire 52 bits, mais nous pouvons faire \emph{comme s'il} était sur 64 bits.}. Ainsi il existe la cellule à l'adresse \code{0}, celle à l'adresse \code{1}, \code{2}, etc. Avec $64$ bits, la limite est donc de $2^{64} \simeq 2 \times 10^{19}$ octets, c'est-à-dire 20Eo (exa octets). Comme ordre de grandeur, selon T. Landauer, la mémoire de l'ensemble de l'humanité serait de l'ordre d'1Eo. Dans les faits, seule une partie de la mémoire est disponible au programme exécuté. Nous y reviendrons en détail.  Un exemple de mémoire virtuelle, la première case contenant la valeur $0xAB$, la dernière $0xEF$. 
+La \emph{mémoire virtuelle} est un tableau de cellules mémoires, chacune possédant donc un index appelé \emph{adresse}. Chaque cellule contient un octet. Sur une machine 64 bits, il y a \emph{potentiellement} $2^{64}$ cellules\footnote{Dans les faits,  l'adressage ne peut se faire que sur 48 bits, voire 52 bits, mais nous pouvons faire \emph{comme s'il} était sur 64 bits.}. Ainsi il existe la cellule à l'adresse \code{0}, celle à l'adresse \code{1}, \code{2}, etc. Avec $64$ bits, la limite est donc de $2^{64} \simeq 2 \times 10^{19}$ octets, c'est-à-dire 20Eo (exa octets). Comme ordre de grandeur, selon T. Landauer, la mémoire de l'ensemble de l'humanité serait de l'ordre d'1Eo. Dans les faits, seule une partie de la mémoire est disponible au programme exécuté. Nous y reviendrons en détail.  Ci-dessous, un exemple de mémoire virtuelle, la première case contenant la valeur \hexa{ab}, la dernière \hexa{ef}. 
 
 \medskip
 \begin{memory}
-m = Memory(12, 0.6);
+m = Memory(12, 0.5);
 m.mark(0, "0")
-m.mark(11, "FF\^ {}8")
-m.content(0, "AB")
-m.content(11, "EF")
-m.content(1, "$\ldots$")
+m.mark(11.3, "ff\^ {}8")
+m.content(0, "ab")
+m.content(11.3, "ef")
+m.content(0.7, "$\ldots$")
 \end{memory}
 
-La mémoire est découpée pages, en tranches de 4kO octets (c'est-à-dire par blocs de 0x1000 = 4096 octets). Chacune dispose de droits spécifiques : R, W et X, lecture, écriture et exécution (c.f. le manuel de {\tt mprotect} en \C sous Unix). 
+La mémoire est découpée en pages, ce sont des tranches de 4kO octets (c'est-à-dire par blocs de \hexa{1000} = 4096 octets). Chacune dispose de droits spécifiques~: R, W et X, lecture, écriture et exécution (c.f. le manuel de {\tt mprotect} en \C sous Unix). 
 
-Pour se "promener" dans la mémoire, et voir les droits associés, on pourra utiliser le petit code \C suivant sous Windows, pour avoir les droits à l'adresse 0x1000000 :
+Pour se "promener" dans la mémoire, et voir les droits associés, on pourra utiliser le petit code \C suivant sous Windows, pour avoir les droits à l'adresse \hexa{1000000} :
 \begin{minted}{C}
 MEMORY_BASIC_INFORMATION mbi;
 VirtualQuery( (void *) 0x1000000, &mbi, sizeof(mbi));
@@ -232,7 +237,7 @@ m.mark(6, "0x2000")
 où les couleurs rouge, bleu, vert désignent des droits spécifiques en mémoire. 
 
 \medskip
-En plus de ce mécanisme, il y a deux modes d'utilisation du processeur~: le mode "user" et le mode "supervisor" ou "kernel". Dans ce cours, nous travaillons essentiellement en mode "user", c'est le mode de l'utilisateur. Le kernel et les drivers vont agir en mode "supervisor". 
+En plus de ce mécanisme, il y a deux modes d'utilisation du processeur~: le mode "user" et le mode "supervisor" ou "kernel". Dans ce cours, nous travaillons essentiellement en mode "user", c'est le mode de l'utilisateur. Le kernel et les drivers vont agir en mode "supervisor". Certaines instructions et certaines zones de la mémoire ne sont accessible que dans ce mode. 
 
 \begin{formalisme}{La mémoire virtuelle}
 En termes mathématiques, l'état de la mémoire virtuelle se décrit comme une paire de fonction $(M,\rho)$ où:
@@ -240,12 +245,12 @@ En termes mathématiques, l'état de la mémoire virtuelle se décrit comme une 
 	\item $M : \Addr \to \BYTE$ où $\Addr = \QWORD$ pour une machine 64 bits, et $\DWORD$ pour une machine 32 bits.
 	\item $\rho: \Addr \to 2^{\{R, W, X\}}$ associe à chaque adresse les droits associés.
 	
-On note $\frak{V}$ l'ensemble des fonctions $\Addr \to \BYTE$ et $\frak{D}$ l'ensemble des fonctions $\Addr \to 2^{\{R, W, X\}}$. Et enfin, $\Memory = \frak{V} \times \frak{D}$. C'est l'ensemble de toutes les configurations mémoire de notre modèle. 
+On note $\bf{V}$ l'ensemble des fonctions $\Addr \to \BYTE$ et $\bf{D}$ l'ensemble des fonctions $\Addr \to 2^{\{R, W, X\}}$. Et enfin, $\Memory = \bf{V} \times \bf{D}$. C'est l'ensemble de toutes les configurations mémoire de notre modèle. 
 \end{itemize}
 
-Etant donné un état de la mémoire $M = (m,r) \in \Memory$, on note $M.mem = m$ sa première composante et $M.rights = r$ la seconde. Etant donné $a \in \QWORD$, on se permet d'écrire $M[a]$ pour $M.mem(a)$. Nous reprenons les notations de la Section~\ref{sec:notations}.
+Etant donné un état de la mémoire $M = (m,\rho) \in \Memory$, on note $M.mem = m$ sa première composante et $M.rights = \rho$ la seconde. Etant donné $a \in \QWORD$, on se permet d'écrire $M[a]$ pour $M.mem(a)$. Nous reprenons les notations de la Section~\ref{sec:notations}.
 
-La gestion des droits page par page se traduit par l'équation $$\rho(x) = \rho(x)\; \& \; \code{ff\^{}6 f0 00}$$ pour tout $x\in \Addr$. L'hypothèse est implicite par la suite. 	
+La gestion des droits page par page se traduit par l'équation $$\rho(x) = \rho(x \ \& \ \tt{ff^6f000}  )$$ pour tout $x\in \Addr$. L'hypothèse est implicite par la suite. 	
 \end{formalisme}
 
 \subsection{Registres}
@@ -286,10 +291,10 @@ Parmi les registres, il y en a trois qui se distinguent.
 \begin{itemize}
 	\item Le registre {\tt rip}, instruction pointer, est le registre qui contient l'adresse de l'instruction à exécuter. 
 	\item Le registre {\tt rsp} désigne le "haut de la pile". 
-	\item Le registre {\tt rflags} est composé de drapeaux. Le drapeau {\tt ZF} est mis à 1 si quand un calcul arithmétique aboutit à 0. Parmi les autres flags : SF, drapeau du signe (1 quand le nombre est positif, 0 s'il est négatif), CF (carry, 1 si l'opération se termine avec une retenue), OF, (overflow, en cas de dépassement de capacité du registre), PF, (parity). 
+	\item Le registre {\tt rflags} est composé de drapeaux. Le drapeau {\tt ZF} est mis à 1 quand un calcul arithmétique aboutit à 0. Parmi les autres flags : SF, drapeau du signe (1 quand le nombre est positif, 0 s'il est négatif), CF (carry, 1 si l'opération se termine avec une retenue), OF, (overflow, en cas de dépassement de capacité du registre), PF, (parity). 
 \end{itemize} 
 
-Il y a combien de registres en {\sc x86}? Disons une centaine, cela dépend de\ldots la manière de compter. Le registres forment tout un zoo qui est le fruit de l'histoire de cette famille de processeurs. Notons toutefois que la plupart d'entre eux sont spécifiques au mode kernel. Pour celles et ceux qui veulent un aperçu du paysage, je suggère \url{https://blog.yossarian.net/2020/11/30/How-many-registers-does-an-x86-64-cpu-have}.
+Il y a combien de registres en {\sc x86}? Disons une centaine, cela dépend de\ldots la manière de compter. Les registres forment tout un zoo qui est le fruit de l'histoire de cette famille de processeurs. Notons toutefois que la plupart d'entre eux sont spécifiques au mode kernel. Pour celles et ceux qui veulent un aperçu du paysage, je suggère \url{https://blog.yossarian.net/2020/11/30/How-many-registers-does-an-x86-64-cpu-have}.
 
 Quelles sont les propriétés des registres ? Premier point, les registres ont donc des tailles spécifiques. Le registre $\rcs$ est un registre dit de segment. Sa taille est de 2 octets. Les registres ${\tt xmm1}, {\tt xmm2}, \ldots$ vus ci-dessus font 16 octets.
 
@@ -304,7 +309,7 @@ Quelles sont les propriétés des registres ? Premier point, les registres ont d
 	Dans la description d'une valuation ci-dessus, le registre {\tt xmm0} qui est dans $\REG$ prend ses valeurs dans $\QWORD$ alors qu'il fait 16 octets (2 $\QWORD$ par conséquent). Comment faire mieux ? 
 \end{commentaire}
 	
-Deuxième point. Les registres permettent de désigner des zones de mémoire. Par défaut, la zone est désignée par la valeur du registre. Toutefois, pour les registres de segments, qui ne font deux octets, la zone indiquée est différente. Le registre $\rfs$ par exemple fait référence au mode d'adressage du processeur (via des tables accessibles en mode kernel). L'adresse  donnée par le registre $\rfs$ ne correspond pas à la valeur du registre mais au contenu indexé dans une table. Faisons abstraction de ce mécanisme, nous \emph{ferons comme si} le registre désignait une valeur arbitraire en mémoire.
+Deuxième point. Les registres permettent de désigner des zones de mémoire. Par défaut, la zone est désignée par la valeur du registre. Toutefois, pour les registres de segments, qui ne font deux octets, la zone indiquée est différente. Le registre $\rfs$ par exemple fait référence au mode d'adressage du processeur (via des tables accessibles en mode kernel). L'adresse  donnée par le registre $\rfs$ ne correspond pas à la valeur du registre mais au contenu indexé dans une table. Faisons abstraction de ce mécanisme, nous \emph{ferons comme si} le registre désignait une valeur arbitraire en mémoire. Le petit bout de code qui suit affiche la valeur du registre \code{fs} et à quel endroit il pointe. 
 
 \begin{minted}{c}
 unsigned short fs;
@@ -316,7 +321,7 @@ printf("fs=%x: fs points to: %lx\n", fs, at_fs);
 
 %Pour résumer, nous notons $\Reg$ l'ensemble des registres. Pour chaque registre $r\in \Reg$, $|r|$ désigne la taille du registre en nombre d'octets et $[r]$ l'index qu'il désigne en mémoire virtuelle. L'état des registres se décrit alors comme une fonction $R$ qui a chaque registre associe $R(r) \in [0\ldots 256^{|r|}]$ sa valeur et $r \mapsto [r]$ est la fonction d'adressage.  
 
-Etant donné $M \in \Memory$ un état de la mémoire virtuelle et $R$ l'état des registres. La notation $M[r] = M.mem(R(r))$ désigne l'octet contenu à l'adresse indiquée par un registre $r \in \Reg$.% Par la suite, nous utiliserons la version simplifiée: $M[r]$. 
+Etant donné $M \in \Memory$, un état de la mémoire virtuelle, et $R$, l'état des registres,  la notation $M[r] = M.mem(R(r))$ désigne l'octet contenu à l'adresse indiquée par un registre $r \in \Reg$. De même, comme nous l'avons vu en section~\ref{sec:notations}, $M_2[r]$ désigne le mot à la position $r$ et ainsi de suite.  % Par la suite, nous utiliserons la version simplifiée: $M[r]$. 
 
 %Nous revenons sur certains registres en section~\ref{sec:asm}. 
 
@@ -324,7 +329,7 @@ Etant donné $M \in \Memory$ un état de la mémoire virtuelle et $R$ l'état de
 
 \newcommand{\Instr}{{\tt Instr}}
 
-Jusque là, nous avons décrit l'état d'une machine. Attaquons nous maintenant au calcul. Les instructions machines sont les plus petits éléments qui le pilote.
+Jusque là, nous avons décrit l'état d'une machine. Attaquons nous maintenant au calcul. Les instructions machines sont les plus petits éléments qui le pilotent.
 
 \begin{formalisme}{Instruction}
 Une instruction est une suite d'octets associée à une sémantique (qui spécifie ce que fait l'instruction). 
@@ -346,7 +351,7 @@ On peut maintenant résumer le fonctionnement d'une machine.  L'exécution d'un 
 
 Ainsi, si la valeur de  $M[\rip]$ est $\hexa{90}$, le processeur reconnaît l'instruction machine dite \code{nop} qui consiste à ne rien faire\footnote{En fait, elle incrémente tout de même la valeur de \rip\ de $1$. }. Si la suite commence par : \code{48,83,C0,09},  il s'agit de l'instruction qui rajoute $9$ au registre \rax\ et passe à l'instruction suivante\footnote{C'est-à-dire incrémente \rip de $4$.}.  
 
-Le programme  poursuit son exécution tant qu'une \emph{interruption} ne se produit pas. Les interruptions (en règle générale externes au programme en cours) peuvent apparaître à diverses occasions, une instruction illégale comme nous avons vu plus haut, une modification au niveau matériel ou bien la frappe d'une touche clavier. Suite à l'interruption, et selon une certaine politique de priorité, le système d'exploitation "reprend" la main, en d'autres termes, la valeur de \rip est modifiée directement par le processeur, en dehors du contrôle du programme. Le système rendra éventuellement la main au programme plus tard. 
+Le programme  poursuit son exécution tant qu'une \emph{interruption} ne se produit pas. Les interruptions (en règle générale externes au programme en cours) peuvent apparaître à diverses occasions, une instruction illégale comme nous avons vu plus haut, une modification au niveau matériel ou bien une horloge interne. Suite à l'interruption, et selon une certaine politique de priorité, le système d'exploitation "reprend" la main, en d'autres termes, la valeur de \rip est modifiée directement par le processeur, en dehors du contrôle du programme. Le système rendra éventuellement la main au programme plus tard. 
 
 \begin{formalisme}{Exécution}
 \'Etant donné une configuration $C = (M, R) \in \Memory \times \vReg$, la machine va lire la suite d'octets à partir de $\rip$. Trois cas : 
@@ -374,7 +379,7 @@ La correspondance entre le code assembleur et le code machine peut se retrouver 
 La liste des instructions se trouve dans le(s) manuel(s) du(es) constructeur(s) du processeur. Par exemple, on retrouvera pour INTEL/x86\_64 les instructions à \cite{IntelSetInstruction}. Attention, l'ensemble des instructions varie au cours du temps, certaines apparaissent, d'autres disparaissent. Par la suite, on note $\Instr$ l'ensemble des instructions. 
 
 \begin{commentaire}{Quelques mots sur l'encodage et la structure des instructions}
-L'encodage des instruction se nomme ISA (Instruction Set Architecture). En \xquatre, une \textit{instruction} se décompose selon le format\footnote{Plus de détails à \url{http://ref.x86asm.net/coder32.html} par exemple.} :%TODO dire qu'en bytes bah c'est quasiment arei
+La structure des instructions  se nomme ISA (Instruction Set Architecture). En \xquatre, une \textit{instruction} se décompose selon le format\footnote{Plus de détails à \url{http://ref.x86asm.net/coder32.html} par exemple.} :%TODO dire qu'en bytes bah c'est quasiment arei
 \begin{eqnarray*}
 	\Instr& ::=& \code{prefix}_1 \dots \code{prefix}_k \; \code{opcode} \; \code{Arg}_1 \dots \code{Arg}_\ell\\
 	\code{Arg} &::=& \code{Imm}\ |\ \Reg\ |\ \code{Mem}\\
@@ -386,8 +391,8 @@ L'encodage des instruction se nomme ISA (Instruction Set Architecture). En \xqua
 \end{eqnarray*}
 où \code{Imm}, \code{Disp} désignent un immédiat (un nombre), $scale\in\{1,2,4,8\}$ et $size\in\{1, 2, 4, 8\}$. 
 
-Le codage de l'instruction suit la structure ci-dessus : chaque préfixe est stocké sur un octet. L'opcode désigne l'opération à réaliser. Il est stocké sur un, deux ou trois octets. Ensuite, pour les arguments, les immédiats sont codés tels qu'ils apparaissent en mémoire. Les registres, registres de segments, scale et size et les références en mémoire ont un mécanisme spécifique (voir le codage \code{mod/rm}+sib). Un exemple, l'instruction $$\code{data16 adc [rbx+rcx*4+0x12],0x1357}$$
-est encodée \code{66,81,54,8B,12,57,12}: 
+Le codage des instructions sous la forme d'octets suit la structure ci-dessus : chaque préfixe est stocké sur un octet. L'opcode désigne l'opération à réaliser. Il est stocké sur un, deux ou trois octets. Ensuite, pour les arguments, les immédiats sont codés tels qu'ils apparaissent en mémoire. Les registres, registres de segments, scale et size et les références en mémoire ont un mécanisme spécifique (voir le codage \code{mod/rm}+sib). Un exemple, l'instruction $$\code{data16 adc [rbx+rcx*4+0x12],0x1357}$$
+est encodée \code{66,81,54,8B,12,57,13}: 
 
 \begin{tikzpicture}
 \node[draw,shape=rectangle] (A) at (0,0) {66};
@@ -506,7 +511,7 @@ end start
 Le code binaire produit contient trois sections, un header, une section ".text" avec des droits RX qui contient les instructions (mentionné \code{.code}, ligne 9), une section ".data" qui contient les variables globales du programme (mentionné \code{.data}, ligne 6). 
 
 Les énoncés comme 
-\mint{asm}{Text db "Hello word", 0} décrivent le contenu de la mémoire à une position nommée "Text", octet par octet. 
+\mint{asm}{Text db "Hello word", 0} décrivent le contenu, octet par octet, de la mémoire à une position nommée "Text". 
 Les énoncés comme \mint{asm}{push eax} décrivent le contenu de la mémoire, mais en utilisant la syntaxe assembleur des instructions. Il eut été équivalent d'écrire : 
 \mint{asm}{db "P"}
 sachant que le code {\tt ascii} de "P" est \code{0x50 == push eax}. 
@@ -553,9 +558,33 @@ Quelques commentaires.
 
 \section{Fonctions}
 
-Un programme en C est une liste de déclarations. Parmi celles-ci, il y a les déclarations de variables et les déclarations de fonctions. Le code C une fois compilé garde cette structure globale : les variables globales d'un côté, les fonctions de l'autre. 
+Un programme en C est une liste de déclarations. Parmi celles-ci, il y a les déclarations de variables et les déclarations de fonctions. Le code résultat, après compilation, garde cette structure globale : les variables globales d'un côté, les fonctions de l'autre. Sauf cas d'"inlining", la structure des fonctions est conservée~: la suite des instructions machines produite se découpe en   morceaux, chacun correspondant à une des fonctions.  Par exemple, le code suivant : 
 
-Un pointeur de fonction désigne la première instruction de la fonction. Voici un petit exemple d'emploi d'un pointeur de fonction (les déclarations initiales sont omises) : 
+\begin{minted}{c}
+void f1(int x){ .... }
+int f2(float y, float z){ ... }
+int main(int argc, char **argv){ ... }
+\end{minted}
+
+\noindent se retrouvera typiquement en mémoire sous la forme : 
+
+\medskip
+\begin{memory}
+m = Memory(12, 0.6);
+m.mark(3, "f1")
+m.mark(4, "f2")
+m.zone(3,4, "red!10")
+m.zone(4,6, "blue!10")
+m.zone(6,9,  "green!10")
+m.content(3,"$\ldots$")
+m.bar(6)
+m.content(4, "$\ldots$")
+m.add_node((7,0.25), "$\ldots$")
+m.bar(9)
+m.mark(6, "main")
+\end{memory}
+
+Un pointeur de fonction désigne l'adresse de la première instruction de la fonction. Voici un petit exemple d'emploi d'un pointeur de fonction (les déclarations initiales sont omises) : 
 
 \begin{minted}[linenos]{C}
 typedef int (*fun_float_int_to_int)(float,int);
@@ -579,17 +608,17 @@ Deux décoration utilisées de temps en temps.
 
 \begin{minted}[]{C}
 __declspec(noinline) int f(float r){...} //ne doit pas être inlinée
-__declspec(naked) void f(){...}    //compilée sans sauvegarde de ebp
+__declspec(naked) void f(){...}   //compilée sans sauvegarde de rbp
 \end{minted}
 
-La première évite que la fonction "disparaisse" du fait de la compilation. Pour la seconde, le compilateur ne rajoutera pas la mise en place du frame de la fonction. 
-
-
+La première évite que la fonction ne soit "inlinée", qu'elle "disparaisse" du fait de la compilation. Pour la seconde, le compilateur ne rajoutera pas la mise en place du frame de la fonction. 
 
 \section{Assembleur}
 
+En \xquatre, il y a beaucoup d'instructions. Hors de question  donc de les présenter de manière exhaustive. Voyons les plus courantes. 
+
 \subsection{Instructions}
-Commençons par les affectations. Voici un certain nombre d'instructions :  
+Commençons par les affectations. En commentaire, on propose leur "équivalent" en C. Voici certaines formes d'affectation :  
 \begin{minted}{asm}
 mov rax, 0x1234     ; rax = 0x1234
 mov rbx, rax        ; rbx = rax
@@ -599,7 +628,7 @@ mov ebx, dword ptr[0x1234] ; autre forme de l'instruction précédente
 mov bx, [0x1234]    ; bx = *((word *) 0x1234 )
 mov bl, [0x1234]    ; bl = *((byte *) 0x1234)
 mov rbx, [rax]      ; rbx = *((dword *) rax)
-mov rbx, [rax+4*rcx+0x12] ; rbx = *((dword *) rax+0x12) or rbx = rax[0x12]
+mov rbx, [rax+4*rcx+0x12] ; rbx = *((dword *) (rax + 4*rcx +0x12))
 mov rbx, fs:[0x30]  ; rbx = [fs+0x30]
 lea rax, [rbx+4*rcx+0x12] ; rax = rbx + 4*rcx + 0x12
 \end{minted}
@@ -609,13 +638,13 @@ Quelques opérations arithmétiques :
 xor eax, eax    ; eax ^= eax or eax = 0
 add rax, rbx    ;  rax += rbx
 sub rax, 0x12   ; rax -= 0x12
-imul rax, [rbx] ; signed mul, rax *= [0x12] seen as qword 
+imul rax, [rbx] ; signed mul, rax *= [rbx] seen as qword 
 imul rbx        ; rax *= rbx (rax is implicit) 
 mul rbx         ; unsigned mul, rax *= rbx 
 fmul [rsp+8]    ; floating point multiplication (st(0) is implicit)
 idiv  [0x1234]  ; ah = rax / *(0x1234), al = rax % *(0x1234)
 \end{minted}
-Ces opérations vont mettre à jour le registre des flags (carries, zero, etc). Mise à jour des flags,
+Ces opérations vont modifier le registre des flags (carries, zero, etc). Mais il y a deux instructions spécifiques pour la mise à jour des flags : 
 \begin{minted}{asm}
 cmp rax, rbx    ; ZF == (rax - rbx == 0), SF == (rax - rbx > 0)
 cmp rax, 0x12   ; 
@@ -625,9 +654,9 @@ test rax, rbx   ; ZF == (rax & rbx == 0)
 
 Opérations sur la pile : 
 \begin{minted}{asm}
-push eax        ; empilement
-pop rbx         ; dépilement
-push 0x12       ; empilement de 8 octets (avec des zeros)
+push eax        ; empilage, ici de la valeur eax
+pop rbx         ; dépilage, ici dans rbx
+push 0x12       ; empilage de 8 octets (avec des zeros)
 pushf           ; "push rflags"
 popf            ; "pop rflags"  
 \end{minted}
@@ -663,30 +692,30 @@ Lorsqu'on double-clique sur un programme, il est exécuté. Le système d'exploi
 
 \section{Le programme en mémoire}
 
-Dans un premier temps, observons la structure de la mémoire au démarrage du programme. Les expériences sont présentées en \C sous Windows. Pour Linux, il y a pleins de variations, mais on retrouve assez rapidement les analogies. Compilons le programme suivant (cf. github::basics/starting.c) : 
+Dans un premier temps, observons la structure de la mémoire au démarrage d'un programme. Les expériences sont présentées en \C sous Windows. Pour Linux, il y a pleins de variations, mais on retrouve assez rapidement les analogies. Compilons le programme suivant (cf. github::basics/starting.c) : 
 
 \begin{minted}[linenos]{C}
 #include "stdafx.h"
 #include <stdlib.h>
 char a ='A',b='B';
 int _tmain(int argc, char *argv[]){
-	int i = 42, j;
-	int *p =(int *) malloc(sizeof(int));
-	printf("[%p] = %d\n", &i, i);
-	printf("[%p] = %c\n", &a, a);
-	printf("[%p] = %x\n", p, *p);
-	printf("_tmain = %p\n", _tmain);
-	printf("printf = %p\n", printf);
-	return 0;
+  int i = 42, j;
+  int *p =(int *) malloc(sizeof(int));
+  printf("[%p] = %d\n", &i, i);
+  printf("[%p] = %c\n", &a, a);
+  printf("[%p] = %x\n", p, *p);
+  printf("_tmain = %p\n", _tmain);
+  printf("printf = %p\n", printf);
+  return 0;
 }
 \end{minted}
 
-Ce programme montre les quatre grandes zones de mémoire visibles (avec un des droits R, W, X) à l'utilisateur :  le programme lui-même, la pile, le tas, et la zone des bibliothèques partagées. Plus en détail : 
+A l'exécution du programme, on trouve  quatre grandes zones de mémoire visibles (avec un des droits R, W, X) à l'utilisateur :  le programme lui-même, la pile, le tas, et la zone des bibliothèques partagées. Plus en détail : 
 \begin{itemize}
-	\item La pile contient typiquement : les variables locales des fonctions (\code{i, j}), les adresses après un appel de fonctions. On retrouve donc une adresse dans la pile à la ligne 7. 
+	\item La pile contient typiquement : les variables locales des fonctions (\code{i, j}), les adresses de retour des appels de fonctions. On retrouve donc une adresse dans la pile à la ligne 7. 
 	\item Le tas contient toutes les données allouées dynamiquement, typiquement avec la fonction \code{malloc}, ligne 9.  
 	\item   Le programme va contenir les instructions (\code{main}, ligne 10), les variables globales (\code{a},\code{b}, ligne 8), et différentes ressources (icones, etc). 
-	\item  Enfin, les DLLs ont la même structure que l'exécutable lui-même (\code{msvcr.dll} qui contient le code de \code{printf}, ligne 11). Elles vont avoir leur propre pile, leur propre tas, etc. 
+	\item  Enfin, les DLLs ont la même structure que l'exécutable lui-même (\code{msvcr.dll} qui contient le code de \code{printf}, ligne 11). %Elles vont avoir leur propre pile, leur propre tas, etc. 
 \end{itemize}
 
 En résumé, 
@@ -705,8 +734,8 @@ m.zone(9,10,"blue!20")
 m.mark(9.5, "KERNEL32.dll")
 m.zone(10.5,11.5,"blue!20")
 m.mark(10.9, "MSVCR100.dll",1)
-m.content(1.15,"\code{RWX}",0)
-m.content(3.8,"\code{RWX}",0)
+m.content(1,"\code{RWX}",0)
+m.content(3.5,"\code{RWX}",0)
 m.mark(1.5, "\&i:12FF74", 0.5, 1)
 m.mark(4.2, "p:304018", 0.5, 1)
 m.mark(6.6, "\_tmain:401000", 0.5, 1)
@@ -722,12 +751,12 @@ Si on fait un zoom sur le programme lui-même, on obtient la structure suivante 
 m = Memory(12, 0.6)
 m.zone(2,11,"red!10")
 m.bar(2,3.5,5,6.5,8,9.5,11)
-m.mark(2.8, "header")
-m.mark(4.3, ".text")
-m.mark(5.7,".rdata")
-m.mark(7.2,".data")
-m.mark(8.8,".reloc")
-m.mark(10.2,".rsrc")
+m.mark(2., "header")
+m.mark(3.5, ".text")
+m.mark(5,".rdata")
+m.mark(6.5,".data")
+m.mark(8,".reloc")
+m.mark(9.5,".rsrc")
 m.mark(2,"\code{400000}",0.5,1)
 m.mark(3.5,"\code{401000}",0.5,1)
 m.mark(5,"\code{402000}",0.5,1)
@@ -735,27 +764,26 @@ m.mark(6.5,"\code{403000}",0.5,1)
 m.mark(8,"\code{404000}",0.5,1)
 m.mark(9.5,"\code{405000}",0.5,1)
 m.mark(11,"\code{406000}",0.5,1)
-m.content(2.5,"\code{RX}",0)
-m.content(4,"\code{RX}",0)
-m.content(5.5,"\code{R}",0)
-m.content(6.8,"\code{RW}",0)
-m.content(8.5,"\code{RW}",0)
-m.content(10,"\code{R}",0)
-m.content(11.1, "\ldots", 0)
+m.content(2.,"\code{RX}",0)
+m.content(3.5,"\code{RX}",0)
+m.content(5.,"\code{R}",0)
+m.content(6.5,"\code{RW}",0)
+m.content(8.,"\code{RW}",0)
+m.content(9.5,"\code{R}",0)
+m.content(11., "\ldots", 0)
 m.content(1,"\ldots", 0)
 \end{memory}
 
-Le header du programme spécifie l'adresse de base, \code{400000}, le nom, la position relative, la taille, les droits en mémoire associé à chacune des sections :\code{.text, .rdata}, etc. Il spécifie également les DLL importées, la taille de la pile demandée ainsi que la taille du tas. Voir la Section~\ref{sec:pe} sur la structure du PE pour plus de détails. 
+Le header du programme spécifie l'adresse de base, \code{400000}, le nom, la position relative, la taille, les droits en mémoire associé à chacune des sections~:\code{.text, .rdata}, etc. Il spécifie également les DLL importées, la taille de la pile demandée ainsi que la taille du tas. Voir la Section~\ref{sec:pe} sur la structure du PE pour plus de détails. 
 
 
-\section{Promenade dans le PE}
+\section{Promenade dans le PE} \label{sec:pe}
 
-Une section écrite d'après : 
+Les fichiers exécutables de \Windows\ suivent le format PE.  Lors de leur exécutions, il vont être mis en mémoire virtuelle. Dans cette section, écrite d'après : 
 \begin{itemize}
 	\item \url{https://learn.microsoft.com/en-us/previous-versions/ms809762(v=msdn.10)}
 \end{itemize}
-
-Un fichier exécutable \Windows\ contient : 
+nous allons revenir sur le format en question. Globalement, un fichier exécutable de \Windows\ a la structure : 
 \begin{itemize}
 	\item une partie \code{DOS},
 	\item un \code{header} pour la partie \code{PE}
@@ -791,7 +819,7 @@ PIMAGE_SECTION_HEADER sections;
 \medskip
 Globalement, le fichier contient : 
 \begin{itemize}
-	\item des informations pour préparer la zone de l'exécutable,
+	\item des informations pour préparer la zone de mémoire correspondant à  l'exécutable,
 	\item des informations pour mettre en place les DLL,
 	\item et des informations pour préparer la pile et le tas.
 \end{itemize}
@@ -917,7 +945,6 @@ Value	&Meaning \\
 La table EAT (Export Address Table) contient une structure liant : un nom de fonction, son ordinal et sa position relative dans l'exécutable. Au chargement d'une bibliothèque partagée par un exécutable $E$, l'OS lit cette table pour retrouver les adresses des fonctions appelées par $E$.
 
 
-
 La table IAT (Import Address Table) contient une structure liant le nom des fonctions importées et les addresses correspondantes. Après avoir retrouvé les addresses des fonctions dans la table d'export de la bibliothèque associée, l'OS remplit la table des adresses.  
 \end{commentaire}
 
@@ -968,10 +995,8 @@ L'adresse \code{0x403200} ne correspond à aucune position dans le fichier. La v
 
 \subsection{Reconstruire l'exécutable à partir de l'adresse de base}
 
-Pour modéliser l'exécutable, nous allons employer la structure suivante : 
-
+Pour avoir accès aux différentes parties d'un exécutable stocké en mémoire à l'addresse \code{p},  nous allons employer la structure fournie par \Windows: 
 \begin{minted}{C}
-
 int parse_pe_in_mem(void *p, pefile32_t & pe){
 	pe.dos_header = (PIMAGE_DOS_HEADER) p;
 	pe.nt_header = (PIMAGE_NT_HEADERS) 
@@ -982,47 +1007,56 @@ int parse_pe_in_mem(void *p, pefile32_t & pe){
 }
 \end{minted}
 
+En particulier, un exécutable peut retrouver assez facilement sa propre structure à partir du pointeur d'instruction. Par ce biais, il peut ensuite modifier sa propre IAT par exemple. 
+
+\begin{minted}{C}
+uint32_t p = (uint32_t) _tmain ; // or any other function of the program
+p = p & 0xfffff000 ; //for alignement on the page
+char *base = (char *) p;
+while ( memcmp(base, "MZ", 2) != 0){ base = base - 0x1000 ; }
+\end{minted}
+
+\`A la suite de ce code, le pointeur \code{base} pointe au début de l'exécutable en mémoire. Evidemment, il se peut que nous n'ayons pas de chance : qu'une page de mémoire entre le pointeur de départ et le début de l'exécutable commence précisément par "M" et "Z". Faite mieux !
 
 \subsection{Exploiter la table EAT}
 
-Voyons comment utiliser la table EAT. La première fonction récupère la table EAT. La second réimplémente la fonction \code{GetProcAddress} à partir de l'addresse de base de la structure et d'un nom de fonction \code{name}
+Voyons comment utiliser la table EAT. La première fonction récupère la table EAT. La seconde réimplémente la fonction \code{GetProcAddress} à partir de l'addresse de base de la structure et d'un nom de fonction \code{name}. En d'autres termes, le code qui suit permet de retrouver "discrètement" une fonction intéressante. 
 
 \begin{minted}{C}
 typedef PIMAGE_EXPORT_DIRECTORY PED;
 
 PED get_eat(pefile32_t &pe){
-	BYTE * ImageBase = (BYTE *)pe.dos_header ;
-	PIMAGE_DATA_DIRECTORY entries = pe.nt_header->OptionalHeader.DataDirectory;
-	uint32_t eat_rva = (uint32_t) entries[0].VirtualAddress;
-	return (PED) ((uint32_t) pe.dos_header + eat_rva);
+  BYTE * ImageBase = (BYTE *)pe.dos_header ;
+  PIMAGE_DATA_DIRECTORY entries = pe.nt_header->OptionalHeader.DataDirectory;
+  uint32_t eat_rva = (uint32_t) entries[0].VirtualAddress;
+  return (PED) ((uint32_t) pe.dos_header + eat_rva);
 }
 
-PED get_fun_address_by_name(pefile32_t &pe,const char *name){
-	BYTE * ImageBase = (BYTE *)pe.dos_header ;
-	PED eat = get_eat(pe);
-	uint32_t *pNameAddr = (uint32_t*)(ImageBase + eat->AddressOfNames);
-	uint32_t *pFuncAddr = (uint32_t *)(ImageBase + eat->AddressOfFunctions);
-	for(uint32_t i = 0; i < eat->NumberOfFunctions; i++){
-		const char *pFunc = (const char *)(ImageBase + pNameAddr[i]);
-		void *pAddr = (void*)(ImageBase + pFuncAddr[i]);
-		if(strcmp(name,pFunc) == 0)
-			return pAddr;
-	}
-	return NULL;
+void * get_fun_address_by_name(pefile32_t &pe,const char *name){
+  BYTE * ImageBase = (BYTE *)pe.dos_header ;
+  PED eat = get_eat(pe);
+  uint32_t *pNameAddr = (uint32_t*)(ImageBase + eat->AddressOfNames);
+  uint32_t *pFuncAddr = (uint32_t *)(ImageBase + eat->AddressOfFunctions);
+  for(uint32_t i = 0; i < eat->NumberOfFunctions; i++){
+    const char *pFunc = (const char *)(ImageBase + pNameAddr[i]);
+    if(strcmp(name,pFunc) == 0)
+      return (void*)(ImageBase + pFuncAddr[i]);
+  }
+  return NULL;
 }
 \end{minted}
 
 
-\section{La structure PEB}
+\section{La structure PEB}\label{sec:peb}
 
-La structure PEB, Process Environment Block, est une structure interne à \code{Windows} qui lui permet de gérer le processus. On y retrouve des 'informations intéressantes : 
+La structure PEB, Process Environment Block, est une structure interne à \code{Windows} qui lui permet de gérer le processus. On y retrouve des informations intéressantes : 
 \begin{itemize}
 	\item le fait que le processus soit en mode Debug ou non, 
 	\item la liste des modules (des DLLs) chargés (cf. \code{Ldr}),
 	\item la ligne de commande initiale (cf. \code{ProcessParameters}).
 \end{itemize}
 
-Sa définition en C (les champs résevés sont omis) : 
+Sa définition en C (les champs réservés sont omis) : 
 \begin{minted}{C}
 typedef struct _PEB {
 	BYTE                          Reserved1[2];
@@ -1059,6 +1093,20 @@ query(GetCurrentProcess(), ProcessBasicInformation,
 PPEB ppeb  = basicinfo.PebBaseAddress;
 \end{minted}
 
+Pourquoi s'embêter à retrouver l'adresse de la fonction "NtQueryInformationProcess", plutôt que de l'appeler directement comme suit : 
+
+\begin{minted}{C}
+PROCESS_BASIC_INFORMATION basicinfo;
+NtQueryInformationProcess(GetCurrentProcess(), ProcessBasicInformation, 
+& basicinfo, sizeof(PROCESS_BASIC_INFORMATION), NULL);
+PPEB ppeb  = basicinfo.PebBaseAddress;
+\end{minted}
+
+Et bien, on trouve une note de Microsoft :  "The NtQueryInformationProcess function and the structures that it returns are internal to the operating system and subject to change [...] If you do use NtQueryInformationProcess, access the function through run-time dynamic linking. This gives your code an opportunity to respond gracefully if the function has been changed or removed from the operating system." 
+
+
+
+
 \paragraph{Avec 2 lignes d'assembleur}
 
 \begin{minted}{asm}
@@ -1080,29 +1128,81 @@ mov ppeb, ebx
 }
 \end{minted}
 
+
+
+\subsubsection{Une application : {\tt echo} avec la structure PEB}
+
+Voyons comment retrouver les arguments du programme avec la table PEB. Nous allons reprogrammer un simple echo : 
+
+\begin{minted}{C}
+int main(int argc, char *argv[]){
+  for(int i = 0 ; i < argc ; i++) printf("%s ", argv[i]);
+  return 0;
+}
+\end{minted}
+mais en se compliquant un peu la vie, enfin, celle de la personne qui fera l'analyse de notre \code{echo.exe}.  
+
+\begin{minted}{C}
+int main(int argc, char *argv[]){
+  PPEB ppeb;
+  //code to get the ppeb
+  PRTL_USER_PROCESS_PARAMETER pp = ppeb->ProcessParameters;
+  printf("%S\n", pp->CommandLine.Buffer);   
+  return 0;
+}
+\end{minted}
+
+
 \subsection{La petite s\oe ur, la table TEB}
 
-C'est une table équivalente, mais pour les threads, Thread Environment Block. 
+C'est une table équivalente, mais pour les threads, Thread Environment Block. Elle contient de très nombreuses informations sur le thread courant. La récupérer peut se faire comme ci-dessus :
+
+\begin{minted}{asm}
+void *teb = (void *) __readfsdword(0x18);
+\end{minted}
+
+ou de manière équivalente : 
+
+\begin{minted}{asm}
+void *teb;
+__asm{
+mov eax, fs:[0x18]
+mov teb, eax
+}
+\end{minted}
+
+
+On retrouve alors de nombreuses informations comme : la position de la pile en mémoire, la gestion des exceptions, la position du PEB, etc. 
+
 
 \section{La section TLS}
 
-C'est une section prévue pour gérer les Thread (Local Storage). Prévue pour initialiser les variables locales aux Threads, elle permet d'invoquer du code "avant" le main. Une astuce contre les debuggers. 
+C'est une section prévue pour gérer les Thread (Local Storage). Prévue pour initialiser les variables locales aux Threads, elle permet d'invoquer du code "avant" le main. Une astuce contre les debuggers. Voici un exemple d'emploi de threads. 
+
+\begin{minted}{C}
+PPEB ppeb;
+__asm{
+  mov eax, fs:[0x30]
+  mov ppeb, eax
+}
+\end{minted}
+
 
 
 
 \chapter{Obfuscations}
 
-Dans ce chapitre, nous montrons des exemples d'obfuscations. Elles sont évidemment innombrables. Ici, nous en faisons un florilège avec l'idée de montrer les mécanismes mis en \oe uvre les plus importants. 
+Dans ce chapitre, nous montrons des exemples d'obfuscations. Les possibilités sont évidemment innombrables. Ici, nous en faisons un florilège avec l'idée de montrer les mécanismes mis en \oe uvre les plus importants. 
 
-Les obfuscations sont en charge de protéger l'exécutable contre son analyse. Ces dernière sont de plusieurs ordre. 
+Les obfuscations sont en charge de protéger l'exécutable contre son analyse. Ces dernière sont de plusieurs ordres. 
 
-Premier point. L'analyste peut faire un étude du code via son fichier binaire. On parle d'analyse statique. Il va essayer de reconstituer la liste des instructions du code, instructions qui contiennent la "logique" (la sémantique) de l'exécutable. L'objectif pour la protection est d'empêcher un tel désassemblage. Ce sera l'objet de la section~\ref{sec:anti-desas}. 
+Premier point. L'analyste peut faire une étude du code via son fichier binaire. On parle d'analyse statique. Il va essayer de reconstituer la liste des instructions du code, instructions qui contiennent la "logique" (la sémantique) de l'exécutable. L'objectif pour la protection est d'empêcher un tel désassemblage. La cible de ces obfuscations sont des outils comme {\tt IDA}, {\tt Ghidra}, {\tt Radare} qui sont des désassembleurs bien connus. Dans les titres qui suivent, ils sont notés (A). 
 
-Deuxième point. Comme une analyse statique est par principe toujours partielle, il est possible d'exécuter le code pour en déteminer le comportement. Cela peut se faire de plusieurs manières. Le code peut être exécuté par un debugger. L'objectif de la protection est d'empêcher/reconnaître le debugger. Ce sera l'objet de la section~\ref{sec:anti-debug}. 
+Deuxième point. Comme une analyse statique est par principe toujours partielle, il est tentant d'exécuter le code pour en déterminer le comportement. Cela peut se faire de plusieurs manières. Le code peut être exécuté par un debugger. L'objectif de la protection est d'empêcher/reconnaître le debugger. Ce sera l'objet de la section~\ref{sec:anti-debug}. Ici, les techniques vont s'attaquer à des outils de debug ou de virtualisation comme {\tt windbg}, {\tt ollydbg}, {\tt cukoo}, etc. Dans les titres qui suivent, ils sont notés (D). 
 
-Troisième point. A supposer que l'analyste arrive à debugger le programme, il faut encore être en mesure de poser des points d'arrêts. Les codes auto-modifiants, ou code produits à la volée, ne sont pas accessibles au départ. Difficile de mettre un point d'arrêt à un endroit qui n'existe pas encore. De manière moins anecdotique, la liste des instruction devient fonction de l'exécution. Cela rend fort relatif les notions de graphes de flot de contrôle. 
+Troisième point. A supposer que l'analyste arrive à debugger le programme, il faut encore être en mesure de poser des points d'arrêts. Les codes auto-modifiants, ou code produits à la volée, ne sont pas accessibles au départ. Difficile de mettre un point d'arrêt à un endroit qui n'existe pas encore. De manière moins anecdotique, la liste des instruction devient fonction de l'exécution. Cela rend fort relatif la notion de graphes de flot de contrôle. Ils sont notés (S). 
 
-Quatrième point. Si l'automodification rendait relatif la notion de code, il reste que l'analyse se réduit à un seul processus. On verra qu'il y a moyen de passer au delà.
+Quatrième point. Si l'automodification rendait relatif la notion de code, il reste que l'analyse se réduit à un seul processus. On verra qu'il y a moyen de passer au delà. Ils sont notés (P).
 
 
 Les codes proposés ont été testés sur la machine virtuelle du cours. Note~: il s'agit d'une machine WindowsXP 32bits. La plupart des techniques peuvent être transposées pour d'autres OS/architectures. Par ordre de difficulté des transpositions : 
@@ -1121,13 +1221,9 @@ Les codes qui suivent ont été compilés en mode 'RELEASE' avec VisualC.  Les c
 \end{itemize}
 
 
+\section{Cacher l'appel de la fonction (A)}
 
-
-
-
-\section{Cacher l'appel de la fonction}
-
-L'utilisation de fonctions, en particulier celles provenant des bibliothèques, donne bien sûr beaucoup d'informations sur ce que fait le programme. C'est la raison pour laquelle les appels de fonctions sont généralement obfusqués (XXX). On propose quelques techniques dans cette section. 
+L'utilisation de fonctions, en particulier celles provenant des bibliothèques, donne bien sûr beaucoup d'informations sur ce que fait le programme. Les désassembleurs donnent les noms de fonctions des bibliothèques en clair. Cela simplifie largement l'analyse. C'est la raison pour laquelle les appels de fonctions sont généralement obfusqués. On propose quelques techniques dans cette section. 
 
 \paragraph{Par un procédé direct}
 
@@ -1182,7 +1278,7 @@ m.mark(7, "78B056B4", 0.5, True)
 m.mark(9, "- 78B05B64 = ", 0.5, True)
 m.content(7, "6A 0C \\ldots")
 m.bar(9)
-m.add_node((10.5,1.38), "1200")
+m.add_node((10.5,1.38), "-1200")
 \end{memory}
 
 
@@ -1191,7 +1287,7 @@ m.add_node((10.5,1.38), "1200")
 %\input{| python truc.py hum hoo} %\getstored{outer}}}
 
 \begin{commentaire}{Fragilités}
-\`A la moindre mise à jour de la DLL, l'écart peut changer. D'où la méthode suivante plus robuste. 	
+\`A la moindre mise à jour de la DLL, l'écart entre les deux fonctions peut changer. D'où la méthode suivante un peu plus robuste. 	
 \end{commentaire}
 
 \paragraph{Par signature}{~}
@@ -1296,7 +1392,7 @@ La fonction \code{get\_fun} retrouve la position dans l'IAT où la fonction \cod
 	Reconstituer une table d'import à la manière de l'algorithme du système. Attention, cela peut prendre du temps. 
 \end{commentaire}
 
-\section{Contre le debug}
+\section{Contre le debug (D)}
 
 Debugger sert aussi à la rétro-ingénierie du code. Les analyses statiques sont limitées, et on peut essayer de retrouver des valeurs critiques en exécutant le programme analysé avec un debugger. 
 
@@ -1321,27 +1417,15 @@ Tout l'art est alors d'avoir une bonne diversion, une qui ne met pas la puce à 
 #include "Windows.h"
 ...
 DWORD res;
-CheckRemoteDebuggerPresent()){
+CheckRemoteDebuggerPresent(GetCurrentProcess(), &res));
+if (res) {
 //diversion
 }
 ...
 \end{minted}
 
-Tout l'art est alors d'avoir une bonne diversion, une qui ne met pas la puce à l'oreille du défenseur. 
-
-\begin{minted}{C}
-#include "Windows.h"
-...
-BOOL res;
-CheckRemoteDebuggerPresent( GetCurrentProcess(),&res);
-if( res)  {
-  //diversion
-}
-...
-\end{minted}
-
 \begin{commentaire}{Mais pourquoi donc ?}
-	Mais à quoi peut servir la fonction \code{CheckRemoteDebuggerPresent} ? Quand un processus est débuggé, il "emet" des interruptions de débug. Celles-ci sont rattrapées par un handler d'exception. Mais il n'est pas prévu que deux handlers s'occupent de la même exception. Et de ce fait, utiliser deux débugger peut poser problème.  
+	Mais à quoi peut servir la fonction \code{CheckRemoteDebuggerPresent} ? Quand un processus est débuggé, il "émet" des interruptions de débug. Celles-ci sont rattrapées par un handler d'exception. Mais il n'est pas prévu que deux handlers s'occupent de la même exception. Et de ce fait, utiliser deux débugger peut poser problème.  
 \end{commentaire}
 
 \paragraph{Pareil, mais sans demander}~
@@ -1371,7 +1455,7 @@ if (p[104] & 0x70){
 \end{minted}
 
 \begin{commentaire}{Mais d'où cela vient il ?}
-Faisons confiance à la communauté. Même si l'octet 104 est dans un champs non renseigné de la documentation \Windows, il y a toujours quelqu'un qui est allé regarder ce qui s'y passe. Ici, citons : \url{https://www.aldeid.com/wiki/PEB-Process-Environment-Block/NtGlobalFlag}.
+Faisons confiance à la communauté. Même si l'octet 104 est dans un des champs non renseignés de la documentation \Windows, il y a toujours quelqu'un qui est allé regarder ce qui s'y passe. Ici, citons : \url{https://www.aldeid.com/wiki/PEB-Process-Environment-Block/NtGlobalFlag}.
 
 L'octet en question contient des flags pour la vérification du tas. Le flag est détourné dans ce cas.   
 \end{commentaire}
@@ -1411,9 +1495,26 @@ La valeur $-113$ a été déterminée par une première exécution. Implicitemen
 
 \paragraph{Contre un debugger en particulier}~
 
-\medskip Il est aussi possible de tuer le processus en charge de debugger. Occupons nous de \code{windbg}. 
+\medskip Il est aussi possible de tuer le processus en charge de debugger. Occupons nous de \code{windbg}. On peut lister les processus jusqu'à retrouver celui qui nous intéresse. Evidemment, comme contre-mesure, on peut envisager changer le nom de {\tt windbg}. 
 
-\section{Contre les motifs de compilation}
+\begin{minted}{C}
+bool isDebug(){ //windbg
+    PROCESSENTRY32 entry;
+    entry.dwSize = sizeof(PROCESSENTRY32);
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+    if (Process32First(snapshot, &entry) ){
+        while (Process32Next(snapshot, &entry) ) {
+            if (wcscmp(entry.szExeFile, L"windbg.exe") == 0){
+               return 1;
+            }
+        }
+    }
+     return 0;
+}
+\end{minted}
+
+
+\section{Contre les motifs de compilation (A)}
 
 En utilisant des constructions hors schéma de compilation standard, on peut dérouter les désassembleurs. On rappelle que le désassemblage est problématique quand on rencontre des instructions dont le contrôle (la valeur de {\tt rip} à venir) est déterminée par la configuration (et pas dans le fichier exécutable).  Les instructions immédiatement problématiques sont : 
 \begin{itemize}
@@ -1422,7 +1523,7 @@ En utilisant des constructions hors schéma de compilation standard, on peut dé
 	\item \code{ret}
 \end{itemize}
 
-Elles demandent l'évaluation d'un registre ou de l'état de la mémloire. Deux tâches indécidables en général. 
+Elles demandent l'évaluation d'un registre ou de l'état de la mémoire. Deux tâches indécidables en général. 
 
 Il y a d'autres instructions qui peuvent être problématiques : celles levant une exception vont amener l'intervention du noyau. De ce fait, le programme perd la main et le retour dans le programme ne peut être déterminé simplement. 
 \begin{itemize}
@@ -1438,9 +1539,9 @@ Venons maintenant aux exemples.
 
 
 
-\section{Automodifications}
+\section{Automodifications (S)}
 
-Dans ce qui a été vu auparavant, nous avions au moins un élément solide sur lequel appuyer l'analyse : la liste des instructions est fixée une fois pour toute. Les retrouver peut être difficile, mais elles ne sont pas fonction des exécutions. Avec les automodifications, le code se transforme lui même en cours d'exécution, la liste des instructions est relative aux exécution, et non plus absolue (présente dans le fichier). 
+Dans ce qui a été vu auparavant, nous avions au moins un élément solide sur lequel appuyer l'analyse : la liste des instructions est fixée une fois pour toute, ce sont celles qu'on voit au chargement du programme. Les retrouver peut être difficile, mais elles ne sont pas dépendantes des exécutions. Avec les automodifications, le code se transforme lui même au cours du temps, la liste des instructions est relative aux exécutions, et non plus absolue (présente dans le fichier). 
 
 Commençons par une automodification toute simple : 
 
@@ -1499,7 +1600,7 @@ int main(){
 
 \paragraph{La notion de vague}
 
-Nous avons vu que du code produisait du code, et donc que celui-ci devenait relatif aux exécutions. Mais comment distinguer des écritures de données en mémoire  d'écritures d'instructions ? Dans le premier cas, on assiste à une exécution normale, pas dans le second. Il y a un argument qui fait basculer d'un cas à l'autre : si on exécute une instruction à une adresse où il y a eu écriture. Dans notre premier exemple, les instructions étaient {\em déjà là}, il n'y a donc pas eu de réécriture en mémoire. Mais pour tous les autres cas, il y a bien écriture en mémoire (à l'occasion du chiffrement dans un cas, de l'écrasement dans l'autre) suivi d'une exécution d'une instruction à une adresse où il y a eu écriture (lors de l'appel à la fonction {\tt mf}).
+Nous avons vu que du code produisait du code, et donc que celui-ci devenait relatif aux exécutions. Mais comment distinguer des écritures légitimes de données en mémoire  d'écritures d'instructions ? Dans le premier cas, on assiste à une exécution normale, pas dans le second. Il y a un argument qui fait basculer d'un cas à l'autre : si on exécute une instruction à une adresse où il y a eu écriture. Dans notre premier exemple, les instructions étaient {\em déjà là}, il n'y a donc pas eu de réécriture en mémoire. Mais pour tous les autres cas, il y a bien écriture en mémoire (à l'occasion du chiffrement dans un cas, de l'écrasement dans l'autre) suivi d'une exécution d'une instruction à une adresse où il y a eu écriture (lors de l'appel à la fonction {\tt mf}).
 
 On définit les vagues de la manière suivante. Au départ, le programme est considéré à la vague $0$. Il entre à la vague $1$ au moment où une instruction exécutée correspond à une adresse où il y a eu écriture à la vague $0$. Et le mécanisme peut continuer. Il entre à la vague $2$ au moment où une instruction exécutée correspond à une adresse où il y a eu écriture à la vague $1$. Et ainsi de suite. 
 
@@ -1509,7 +1610,7 @@ Soit une trace d'exécution d'un programme $P$, c'est-à-dire une suite $(a_0, i
  La vague $0$ est l'instant $0$.  La vague $1$ est le plus petit entier $m$ tel que $a_m \in \cup_{0 \leq n < m} w(n)$. Plus généralement, la vague $k+1$ est le plus petit entier $m$ tel que $a_m \in \cup_{  m_k \leq n < m} w(n)$ où $m_k$ désigne la vague $k$. 
 \end{formalisme}
 
-On pourra noter, de manière incidente, que pendant une vague, par définition, toutes les instructions exécutées sont déjà présentes en mémoire {\em au début de la vague}. Dans le durée de la vague, le code peut être considéré comme {\em non automodifiant}. Par conséquent, le début des vagues est un bon moment pour faire une analyse de code. On sait que toutes les instructions exécutées pendant la vague sont dans le dump de mémoire.
+On pourra noter, de manière incidente, que pendant une vague, par définition, toutes les instructions exécutées sont déjà présentes en mémoire {\em au début de la vague}. Pendant la durée de la vague, le code peut être considéré comme {\em non automodifiant}. Par conséquent, le début des vagues est un bon moment pour faire une analyse de code. On sait que toutes les instructions exécutées pendant la vague sont dans  la mémoire au début de la vague. C'est une bonne raison de faire un dump à ce moment là. 
 
 \paragraph{Code caché}
 
@@ -1520,14 +1621,41 @@ Si une instruction $i_0$ de la vague $0$ a produit (écrit en mémoire) une inst
 Mais on peut aller plus loin dans ce scénario. L'instruction $i_2$ peut elle-même écraser l'instruction $i_1$ en mémoire. Si notre analyste a le malheur de faire son dump juste après $i_2$, il observe une instruction $i_2$ qui n'a pas été produite par le code initial et en outre, l'instruction qui l'a produite n'est pas dans le dump mémoire. On dit que la vague $2$ \emph{écrase} la vague $1$.
 
 
-\paragraph{Mais comment écrire du code automodifiant ?}
+\paragraph{Mais comment écrire du code automodifiant  en pratique ?}
+
+Dans les exemple que nous avons vu, nous avons produit directement le code machine. Mais on ne parle pas tous cette langue couramment. Aussi, pour écrire du code plus sophistiqué, il convient d'avoir une stratégie plus globale. Imaginons que nous ayons une fonction à cacher. 
+
+\begin{minted}[linenos]{C}
+int f(int x, int y){
+	...
+}
+\end{minted}
+
+Rien n'interdit de la compiler, et ensuite d'extraire les octets de la fonction dans le binaire. La tâche consiste alors a reproduire la suite d'octets en mémoire, et à lancer une fonction à cet endroit. 
+
+Toutefois, nous sommes ici tributaires de la compilation de la fonction par le compilateur. Il peut :
+\begin{enumerate}
+\item ne pas compiler la fonction si elle n'est pas employée dans le code,
+\item inliner la fonction,
+\item compiler la fonction, mais optimiser le code aux cas rencontrés. Typiquement, si vous n'utilisez que la fonction avec des nombres positifs et qu'il y a un test \mintinline{C}{if (x > 0)}, celui-ci peut disparaitre. 
+\item utiliser des références à des adresses relatives. Par exemple, on pourra retrouver une instruction comme \mintinline{asm}{ mov ebx, [eax+12]} où la valeur de {\tt eax} est la différence en mémoire entre la position d'une variable globale $a$ et la position de l'instruction courante. On retrouve ce motif dans un appel de fonction interne par exemple.
+\end{enumerate}
+
+Alors, quelques pistes de solution pour contourner ces motifs de compilation. 
+\begin{enumerate}
+\item il faut prévoir au moins un appel de la fonction dans le code préliminaire,
+\item on peut utiliser \mintinline{C}{__declspec(noinline) }
+\item il faut prévoir des appels qui vont couvrir tous les cas d'emploi, on peut également compiler en enlever les optimisations, XXX figure
+\item il faut éviter les variables globales, on peut les passer comme paramètres de la fonction .
+\item pour les fonctions locales, on trouvera des adresses relatives. Il faut alors les modifier à la main, ou utiliser des pointeurs de fonction. Pour les fonctions dans des bibliothèques, l'adresse peut également être relative, et dans ce cas, il faut patcher le code produit. 
+\end{enumerate}
+
+Devant les difficultés, il peut être intéressant d'écrire le code directement en assembleur. Bien sûr, on pourra s'appuyer sur un code compilé pour aller plus vite. En pratique, si la fonction n'est pas très longue, cela peut aller rapidement.  Et souvent, il est nécessaire de faire une dernière passe à la main, en modifiant directement les quelques instructions qui font des références à des adresses de manière relative. Pour ces dernières, on peut directement modifier l'instruction. Passer par exemple de \mintinline{asm}{mov eax, 0x2a == "B8 2A 00 00 00"} à \mintinline{asm}{mov eax, 0x33 == "B8 33 00 00 00"}. 
 
 
+\section{Défense contre le patch (D, S)}
 
-
-\section{Défense contre le patch}. 
-
-Rien n'interdit à l'analyste de patcher le code analysé. En faisant cela, il prend le risque de modifier  les exécutions. Mais il pourra quand même observer celles-ci. Si le patch n'est pas trop intrusif, il pourra avoir une bonne vue de ce qui se passe. 
+Rien n'interdit à l'analyste de patcher le code analysé. En faisant cela, il prend le risque de modifier  les exécutions. Mais il pourra quand même observer celles-ci au moins partiellement. Par exemple, il pourra éviter une méthode anti-debug sans trop de difficulté. Si le patch n'est pas trop intrusif, il pourra avoir une bonne vue de ce qui se passe. 
 
 Mais rien n'interdit à l'écrivain du malware de prévoir cela. Il est donc tout à fait possible que le code du malware vérifie sa propre intégrité. Nous avons vu un tel mécanisme dans la section sur les méthodes anti-debug. Mais cela peut être également envisagé de manière plus générale.  Typiquement, le code à la vague $n+1$ est susceptible de vérifier que le code de la vague $n$ n'a pas été modifié par l'analyste.
 
@@ -1558,20 +1686,346 @@ Quand on veut vérifier l'intégrité d'une fonction, la position de départ est
 
 Petite note : ici, on fait l'hypothèse que le compilateur va placer en mémoire la fonction {\tt f} entre la fonction {\tt sum} et la fonction {\tt main}. L'ordre d'apparition des fonctions dans le code compilé est relativement stable. En outre, il est toujours possible de vérifier a posteriori que le code est bien dans l'ordre voulu. 
 
+\begin{commentaire}{Se vérifier soi-même}
+Bien sûr, dans le cas présent, on ne vérifie que l'intégrité de la fonction {\tt f} dans {\tt main}. Et pour ceux qui aiment réfléchir, si on veut vérifier l'intégrité de {\tt main} dans {\tt main}, il n'est pas si facile de calculer la constante {\tt MAGIC}, et même peut être pas possible. En tous les cas, rien n'interdit qu'une autre fonction, appelée par {\tt main} fasse elle-même le travail. Le code de {\tt main} reste inchangé, la constante étant dans la fonction auxiliaire. 
+\end{commentaire}
 
-Bien sûr, dans le cas présent, on ne vérifie que l'intégrité de la fonction {\tt main} dans {\tt main}. Et pour ceux qui aiment réfléchir, ce n'est pas si facile de calculer la constante {\tt MAGIC} dans ce cas là. En tous les cas, rien n'interdit qu'une autre fonction, appelée par {\tt main} fasse elle-même le travail. 
+\begin{commentaire}{Tromper la vérification}
+Rien n'interdit au défenseur de repérer la vérification d'identité. Et de patcher la vérification en question. Mais alors, l'attaquant peut vérifier que la vérification n'a pas été usurpée. Et l'histoire peut continuer longtemps. 
+\end{commentaire}
 
 
 
+\section{Mécanismes multi-processus}
 
-\section{Mécanisme multi-processus}
+Jusque là, les obfuscations que nous avons vues laissent au moins un élément absolu : les instructions exécutées correspondent à un exécutable en particulier. Mais nos machines permettent à plusieurs processus de co-exister et même de travailler ensemble. Pourquoi ne pas faire faire une partie du travail à un processus et une autre à un autre. Après tout, c'est bien comme cela qu'on procède pour de grands projets logiciels.
+
+Evidemment, il y a deux possibilités de répartir le calcul, on peut le faire via des threads ou via des processus. Dans le premier cas, on reste avec un seul exécutable, mais un calcul réparti, dans l'autre, on a plusieurs processus distincts. Dans tous les cas, pour l'analyste, la tâche devient plus compliquée. Comprendre un algorithme séquentiel est toujours plus simple que son équivalent réparti. Par exemple, debugger devient vite plus compliqué : il faut gérer les points d'arrêts, le temps devient relatif au thread (ou au processus) et simplement reconnaitre les points de synchronisation peut être difficile. 
+
+Mais cela ne reste que de la (bonne) programmation, l'objet d'un cours sur les calculs répartis. Ce que l'on va faire ici est un peu différent. Nous allons mettre en oeuvre des mécanismes qui sortent de la programmation honnête.
+
+\paragraph{L'emploi d'une DLL}
+
+Afin de séparer physiquement l'exécutable d'une fonction qu'on voudrait garder secrète, on peut utiliser une DLL. Dans le code suivant, on défini une fonction qui sera exportée par la DLL:
+\begin{figure}[H]
+\begin{minted}[linenos]{C}
+__declspec(dllexport) int thekey(int iv){
+	return iv + 42;
+}
+\end{minted}
+\caption{MyLib.cpp}
+\end{figure}
+Pour appeler la DLL, on peut l'inclure statiquement (voir la documentation de Microsoft) ou faire un appel direct à la bibliothèque : 
+
+\begin{figure}[H]
+\begin{minted}[linenos]{C}
+typedef int (*secret_function) (int);
+int _tmain(int argc, _TCHAR* argv[]){
+  HMODULE mylib = LoadLibraryA("C:\\MyLib.dll");
+  secret_function secret;
+  secret = (secret_function) GetProcAddress(mylib, "?thekey@@YAHH@Z");
+  printf("%d", secret(argc));
+  return 0;
+}
+\end{minted}
+\caption{MonExe.cpp}
+\end{figure}
+
+A la ligne 5, on voit apparaître \code{"?thekey@@YAHH@Z"} qui est la version décorée de \code{"thekey"} (on parle de "mangling" dans la littérature). Le langage C++ définit la décoration pour tenir compte de la surcharge des fonctions de sorte que deux fonctions ayant le même nom mais des arguments différents soient exportées avec des noms différents. Les éléments de décoration décrivent le profil de la fonction. 
+
+\paragraph{Se faire passer pour un autre}
+
+On peut commencer simplement. Supposons que la "payload" soit le programme \mintinline{C}{hostname.exe}. On pourra écrire un exécutable qui lance la "payload". Evidemment, il vaudrait mieux faire en sorte de ne pas mettre en clair le nom du programme ciblé. 
+
+\begin{minted}[linenos]{C}
+int main(char *p, char *q){
+  STARTUPINFOA si = { sizeof(si) };
+  PROCESS_INFORMATION pi;
+  CreateProcessA(NULL, "C:\\Windows\\System32\\hostname.exe", \
+  		0, 0, FALSE, 0, 0, 0, &si, &pi);
+  WaitForSingleObject(pi.hProcess, INFINITE);
+  CloseHandle(pi.hProcess);
+  CloseHandle(pi.hThread);
+}
+\end{minted}
+
+%Dans le cas qui précède, l'exécutable est tout à fait innocent. Il lance juste un nouveau processus. Evidemment, on ne laissera pas en clair le nom de la charge. 
+
+\paragraph{Injection dans un autre exécutable}
+
+L'idée est de faire faire par un exécutable {\tt EXE} des actions "malveillantes". Pour cela, un procédé "simple" est de faire charger par l'{\tt EXE} lui-même une DLL qui contient la charge. Afin d'y parvenir, on va avoir besoin de a) allouer de la mémoire dans un autre processus, b) modifier le contenu de ce bloc et c) lancer un thread dans {\tt EXE}. Voyons cela de plus près : 
+
+\begin{minted}{C}
+...
+//PID = pid de l'exe à infecter
+process = OpenProcess(PROCESS_ALL_ACCESS, FALSE, PID);
+char * path = "chemin_vers_la_DLL\\Polueur.dll";
+int dll_length = strlen(path);
+LPVOID base_address  = VirtualAllocEx(process, NULL, dll_length, //"malloc"
+                       MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);//cf doc Microsoft
+SIZE_T N;
+WriteProcessMemory(process, base_address, path, dll_length, & N); //"memcpy"
+CreateRemoteThread(process, NULL,0,(LPTHREAD_START_ROUTINE)LoadLibraryA, 
+                                                  base_address, 0, NULL);
+ //attendre un petit peu
+ \end{minted}
 
 
 
+\chapter{L'analyse dynamique}
+
+Quand l'analyse statique échoue pour une raison ou une autre, on peut être amené à utiliser un débogueur. Mais quand le débogueur ne fonctionne pas, on pourra essayer une analyse dynamique. Elle consiste à exécuter le binaire, mais en gardant, au moins partiellement, un contrôle sur l'exécution du code.
+
+
+L'outil d'analyse dynamique que nous allons utiliser est  {\sc PIN}, un outil maintenu par {\sc intel}. Il y en a bien d'autres, citons {\sc dynamorio} qui est le plus proche de {\sc PIN}, et les "bacs à sable" comme {\tt Qemu}, {\tt TequilaBoomBoom}, etc. D'autres procédures d'analyse dynamique s'appuient sur l'introspection comme {\sc Drakvuf}, mais cette dernière technique demande de consacrer une machine pour faire tourner l'hyperviseur. Nous avons choisi {\sc PIN} pour la simplicité de l'installation et le fait qu'il rende correctement compte de ce qui est possible en analyse dynamique. 
+
+L'objectif de ce chapitre n'est pas de présenter {\sc PIN} sous toutes les coutures, mais de montrer en quoi l'analyse dynamique permet de répondre à des questions de retro-ingénierie. De manière générale, j'invite le lecteur à se reporter à la documentation d'{\sc INTEL} qui est bien plus complète que ce que nous allons faire ici. 
+
+Le principe  est le suivant : {\sc PIN} prend deux entrées, un exécutable {\tt M.exe} à analyser et une DLL {\tt D.dll} qui va contrôler l'exécution de {\tt M.exe}.  La commande qui suit exécute le programme {\tt M.exe} avec les arguments {\tt argv1}, {\tt argv2}, \ldots en étant contrôlé par {\tt D.dll}. 
+
+\begin{minted}[linenos]{C}
+pin.exe -t D.dll -- M.exe argv1 argv2 ...
+\end{minted}
+
+Pour être un peu plus complet, {\sc PIN}  peut également s'attacher sur un processus existant, à la manière d'un débogueur. Il peut également s'attacher à un nouveau processus au démarrage. 
+
+La DLL d'analyse est produite en C/C++ à l'aide de l'a bibliothèque fournie par {\sc INTEL}. On retrouvera un exemple de projet avec les liens déjà préparés sur la machine virtuelle.  L'exemple le plus simple est le suivant : 
+
+\begin{minted}[linenos]{C}
+int main(int argc, char *argv[]){
+  PIN_Init(argc, argv); //transmits the args to M.exe
+  PIN_StartProgram();//starts M.exe
+  return 0;
+}
+\end{minted}
+
+Ensuite, on se donne des fonctions de callback. Chacune va prendre en compte un des évènements : 
+\begin{itemize}
+\item La fin de l'exéuction : \code{PIN\_AddFiniFunction},
+\item Le chargement d'un module (l'exécutable ou une bibliothèque partagée) : \code{IMG\_AddInstrumentFunction}
+\item Le "chargement" d'une instruction qui n'a pas été exécutée auparavant : \code{INS\_AddInstrumentFunction}.
+\end{itemize}
+
+Voici quelques exemples typiques d'utilisation de chacune des fonctions d'instrumentation.
+
+\paragraph{La fonction \code{PIN\_AddFiniFunction}} 
+
+Etant donné une fonction :
+
+\begin{minted}{C}
+VOID fini(UINT32 status, VOID *v){ ... } 
+\end{minted}
+
+un appel :
+
+\begin{minted}{C}
+PIN_AddFiniFunction(fini, v)} 
+\end{minted}
+
+va déclencher l'appel à la fonction \code{fini}  à la terminaison du programme. La fonction \code{fini} a deux arguments \code{INT32 status} qui donne  le statut de sortie et le pointeur \code{VOID *v} dont la valeur est le deuxième argument de la fonction \code{PIN\_AddFiniFunction}. La fonction peut être utilisée pour la fermeture des fichiers par exemple. 
+
+
+\begin{minted}[linenos]{C}
+VOID fini(INT32 status, FILE *file){
+  fprintf(file, "Code exit with status %d\n", status);
+  close(file);
+}
+int main(int argc, char *argv[]){
+  FILE *logfile = fopen("my_analysis.log", "w")
+  PIN_Init(argc, argv); //transmits the args to M.exe
+  PIN_AddFiniFunction(fini, file);
+  PIN_StartProgram();//starts M.exe
+  return 0;
+}
+\end{minted}
+
+
+\paragraph{La fonction \code{IMG\_AddInstrumentFunction}} La fonction de callback est appelée au chargement de chaque module. Elle prend deux arguments, \code{IMG img} et \code{VOID *v}, le premier est un pointeur sur une structure qui contient des informations à propos du module, le second est celui qui vient de l'appel de la fonction \code{IMG\_AddInstrumentFunction}. 
+
+Sachant que le premier module chargé est le programme lui-même, le code qui suit donne la position en mémoire de l'exécutable. Ceci peut être fort utile pour sélectionner les addresses qui correspondent à la zone de l'exécutable. 
+
+\begin{minted}[linenos]{C}
+VOID module(IMG, VOID *v){
+  cout << IMG_Name(img) << ": " << IMG_StartAddress(img) << 
+          " - " << IMG_HighAddress(img) << "\n";
+}
+int main(int argc, char *argv[]){
+  PIN_Init(argc, argv);
+  IMG_AddInstrumentFunction(module, NULL);
+  PIN_StartProgram();//starts M.exe
+  return 0;
+}
+\end{minted}
+
+Cette fonction est fort utile pour filtrer les instructions qui nous intéressent~: classiquement, on va ne garder que celles qui sont dans l'exécutable, pas les instructions des bibliothèques. 
+
+
+ \paragraph{Quelques fonctions sur les images}
+\begin{verbatim}
+VOID ImageUnload(IMG img, VOID *v)
+IMG_AddInstrumentFunction(ImageLoad, 0);
+IMG_Name(img)
+IMG_LowAddress(img)
+IMG_HighAddress(img)
+ \end{verbatim}
+ 
+\paragraph{La fonction \code{INS\_AddInstrumentFunction}} La fonction de callback est appelée au chargement de chaque nouvelle instruction. Elle a deux arguments, \code{INS ins} qui donne accès à des informations sur l'instruction, et le pointeur \code{VOID *v} que l'on a déjà vu. Le programme qui suit permet d'afficher la liste de toutes les instructions rencontrée lors de l'exécution : 
+
+\begin{minted}[linenos]{C}
+VOID instruction(INS ins, VOID *v){
+  cout << INS_Address(ins) << ": " << INS_Disasm(ins) << "\n"; 
+}
+int main(int argc, char *argv[]){
+  PIN_Init(argc, argv);
+  INS_AddInstrumentFunction(instruction, NULL);
+  PIN_StartProgram();//starts M.exe
+  return 0;
+}
+\end{minted}
+
+Premier point. Vu le nombre d'instructions, on est rapidement débordé par la taille des sorties. Deux possibilités : on met le résultat dans un log et on le gère avec un post-traitement,  ou on filtre les instructions considérées. Par exemple, pour ne voir que les instructions qui sont dans le programme lui-même, en exploitant la fonction \code{IMG\_AdddInstrumentFunction} pour initialiser les variables \code{low} et \code{high}, on pourra les utiliser comme ci-dessous : 
+\begin{minted}{C}
+  ADDRINT eip = INS_Address(ins);
+  if (eip >= low && eip <= high){ 
+  cout << INS_Address(ins) << ": " << INS_Disasm(ins) << "\n"; 
+  }
+\end{minted}
+
+Deuxième point. Ce programme ne permet pas d'observer les boucles. En effet, seules les instructions nouvellement chargées font l'objet d'un appel à la fonction de callback. Pour exécuter une fonction à chaque passage par une instruction, {\sc pin} va transformer l'instruction à la volée. L'exemple qui suit affiche les addresses des instructions, instruction par instruction : 
+
+\begin{minted}[linenos]{C}
+VOID ins2(ADDRINT eip){
+cout << hex << eip << endl ;  
+}
+
+VOID instruction(INS ins, VOID *v){
+ INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) ins2, 
+ 			IARG_INST_PTR, IARG_END);
+}
+\end{minted}
+
+La fonction \code{INS\_InsertCall} demande les arguments suivants. Le premier, {\tt ins}, est l'instruction sur laquelle on veut exécuter la fonction \code{ins2} à chaque passage dans l'instruction. L'argument \code{ IPOINT\_BEFORE} indique que la fonction \code{ins2} sera exécutée \emph{avant} l'instruction elle-même. Après l'argument \code{ins2}, on trouve une description des arguments qui seront transmis à la fonction \code{ins2}. Ici, \code{IARG\_INST\_PTR} (le pointeur d'instruction \code{eip}) suivi d'aucun autre argument \code{ IARG\_END}. 
+
+Nous allons maintenant enrichir l'ensemble de ces fonctions pour affiner les analyses. 
+
+\paragraph{La valeur d'un registre}
+
+\begin{verbatim}
+ VOID print_eax(uint32_t  eax){
+  	cout << hex <<  eax << '\n' ; 
+ }
+ ...
+ INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) print_eax,  
+               IARG_REG_VALUE, REG_EAX, IARG_END);
+  \end{verbatim}
+  
+\paragraph{Le passage du contexte : pour plusieurs registres }
+
+\begin{verbatim}
+ VOID print_two_regs (CONTEXT *ctxt ){
+        UINT32 eax = (UINT32) PIN_GetContextReg(ctxt, REG_EAX);
+        UINT32 esp = (UINT32) PIN_GetContextReg(ctxt, REG_EAX);  
+  	cout << hex <<  eax <<  " " << esp << ' \n' ; 
+ }
+ ...
+ INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) print_two_regs,  
+              IARG_CONTEXT, IARG_END);
+  \end{verbatim}
+  
+ \paragraph{Le passage d'un pointeur}
+\begin{verbatim}
+ VOID print_ins(string *s){
+  	cout << s  << ' \n' ; 
+ }
+ ...
+ INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) print_ins,  
+              IARG_PTR, new string(INS_Disassemble(ins)), IARG_END);
+  \end{verbatim}
+
+ \paragraph{Le cas des instructions qui font référence à la mémoire}
+ 
+ En écriture : 
+ 
+\begin{verbatim}
+ VOID print_ea(void *ea){
+  	cout << ea  << ' \n' ; 
+ }
+ ...
+ 
+ //INS_MemoryOperandCount retourne le nombre de références à la mémoire
+for( UINT32 i = 0 ; i < INS_MemoryOperandCount(ins) ;++i){
+         INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) print_ea,  
+	IARG_MEMORYOP_EA, i, IARG_END)
+  }
+ \end{verbatim}
+ 
+ Ce qui précède peut être raffiné en filtrant les arguments lus ou écrits en mémoire avec les fonctions respectives  \code{INS\_MemoryOperandIsRead(ins, memOp)} et    \code{INS\_MemoryOperandIsWritten(ins, memOp)}. 
+ 
+ \paragraph{Lecture directe de la mémoire}
+
+En supposant que notre code soit compilé par nos soins et dont l'image de base est \code{0x400000}, on pourra retrouver les lettre 'MZ' comme suit : 
+
+
+\begin{verbatim}
+ VOID print_mz(){
+        char * mz = (char *) 0x400000;
+        if ( PIN_CheckReadAccess(mz)  ) //vérifie que le processus peut acceder en mz
+	  	cout << mz  << ' \n' ; 
+ }
+\end{verbatim}	
+ 
+\paragraph{Sur les{instructions}}
+\begin{verbatim}
+string *opcode = ;
+INS_Size(ins)              ; taille de l'instruction
+INS_Address(ins)        ; //eip
+INS_NextAddress(ins) ; //instruction suivante
+\end{verbatim}	
+
+\paragraph{Gestion des arguments}
+ \begin{verbatim}
+ UINT32 memOperands = INS_MemoryOperandCount(ins);
+ INS_MemoryOperandIsRead(ins, memOp)
+ INS_MemoryOperandIsWritten(ins, memOp)
+ INS_InsertCall(...,IARG_MEMORYOP_EA, memOp,..., IARG_END);
+ // pour les registres
+ INS_MaxNumWRegs(ins) : nombre de registres qui sont écrits
+ INS_RegW(ins, i) // le ième registre écrit
+ INS_MaxNumRRegs(ins) //pareil en lecture
+ INS_RegR(ins, i) // pareil en lecture
+ REG_EAX, REG_EIP, REG_ESP, ...
+ \end{verbatim}
+ 
+ 
+ \paragraph{Miscélannées : fonctions et noms}
+ \begin{verbatim}
+ RTN_FindNameByAddress( eip ) ;
+ main(){
+ ... PIN_InitSymbols()
+ }
+ \end{verbatim}
+ 
+ 
+ \paragraph{Sections}
+ dans une fonction \verb|IMG_fun(IMG img, VOID *)| 
+ \begin{verbatim}
+ for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
+ SEC_Size(sec)
+ SEC_Address(sec ) 
+ SEC_Data(sec ) 	
+ SEC_Name(sec )
+ \end{verbatim}
+
+\begin{exercice}{Retrouver "hello"}
+On suppose que l'on voit apparaître "hello" sur la console. Retrouver la zone de mémoire qui fait référence à "hello". 
+\end{exercice}
+
+\begin{exercice}{Retrouver "printf"}
+Retrouver tous les appels à la fonction "printf".  
+\end{exercice}
 
 
 \bibliographystyle{alpha}
-
 \bibliography{references}	
 
 \chapter{Prérequis}
