@@ -111,8 +111,13 @@ D'autre part, je fais l'hypothèse que vous connaissez le langage \C et le langa
 
 Décrire le fonctionnement complet d'une machine est hors de portée d'un document comme celui ci. Il faudrait une bibliothèque entière pour le faire, et une bibliothèque qui changerait à chaque seconde. Nous ferons  quelques fois des approximations dont l'unique but est de rester simple. Sans quoi, on se noit dans les détails de fonctionnement d'une machine en perdant de vue ce qui est important. L'idée directrice est de donner de quoi raisonner sur le fonctionnement d'un programme, pas de décortiquer le fonctionnement d'un ordinateur. \'Evidemment, comme le programme est exécuté sur l'ordinateur, le fonctionnement de ce dernier ne peut être complètement oublié, mais l'abstraction est le meilleur moyen de pouvoir continuer à travailler.
 
+La machine virtuelle qui est mise à votre disposition contient tout ce qui est nécessaire pour les exercices. Le seul point qui diffère par rapport à une machine "normale", c'est que l'ASLR a été désactivé (la clé de registre Memory Management/MoveImages). L'ASLR complique inutilement l'interprétation de la mémoire. Mais ce que nous faisons s'applique sans souci à une machine pour laquelle l'ASLR serait actif.
+
+Passer à une machine Win11 ne pose pas de soucis majeurs. Mais quelques fois, il faut un peu adapter les codes proposés. 
+
 \medskip
 Bonne lecture,
+
 
 \chapter{Prérequis}
 
@@ -489,32 +494,28 @@ Le code est structuré sous forme de sections, chacune représentant un bloc de 
 Commençons par "Hello world" écrit en syntaxe {\tt masm} :
 
 \begin{minted}[linenos]{asm}
-.model flat,stdcall ; memory=flat, stdcall = extern function
-include \masm32\include\kernel32.inc
-includelib \masm32\lib\msvcrt.lib ; Some default includes :P
-printf proto C :vararg 	; declaration of printf usage
-
-.data
-Text       db "Hello World",0
-
-.code
-start:
-	mov eax, offset Text
-	push eax ; Push text to the stack
-	call printf 
-	pop eax ; restore the stack
-	push 0 ; Exit code 0 (Success)
-	call ExitProcess
-end start
+printf PROTO : QWORD
+ExitProcess PROTO:  QWORD
+.data 
+  message DB "Bonjour le monde", 10, 0
+.code 
+   main PROC
+   xor rax, rax
+   lea rcx, message
+   call printf
+   xor rax, rax
+   call ExitProcess
+  main ENDP
+END
 \end{minted}
 
-Le code binaire produit contient trois sections, un header, une section ".text" avec des droits RX qui contient les instructions (mentionné \code{.code}, ligne 9), une section ".data" qui contient les variables globales du programme (mentionné \code{.data}, ligne 6). 
+Le code binaire produit contient trois sections, un header, une section ".text" avec des droits RX qui contient les instructions (mentionné \code{.code}, ligne 5), une section ".data" qui contient les variables globales du programme (mentionné \code{.data}, ligne 3). 
 
 Les énoncés comme 
-\mint{asm}{Text db "Hello word", 0} décrivent le contenu, octet par octet, de la mémoire à une position nommée "Text". 
-Les énoncés comme \mint{asm}{push eax} décrivent le contenu de la mémoire, mais en utilisant la syntaxe assembleur des instructions. Il eut été équivalent d'écrire : 
-\mint{asm}{db "P"}
-sachant que le code {\tt ascii} de "P" est \code{0x50 == push eax}. 
+\mint{asm}{message db "Bonjour le monde", 10, 0} décrivent le contenu, octet par octet, de la mémoire à une position nommée "message". 
+Les énoncés comme \mint{asm}{xor rax, rax} décrivent le contenu de la mémoire, mais en utilisant la syntaxe assembleur des instructions. Il eut été équivalent d'écrire : 
+\mint{asm}{db 0x48, "1", 0xC0}
+sachant que le code {\tt ascii} de "1" est \code{0x31}.  
 
 Venons en maintenant au langage C. 
 
@@ -523,26 +524,25 @@ Venons en maintenant au langage C.
 Quelques lignes à connaître par c\oe ur. 
 
 \begin{minted}[linenos]{C}
-int _tmain(int argc, _TCHAR* argv[]){
-	int i = 0x12345678, j = 32;
-	printf("[%p] = %d, [%p] = %d \n", &i, i, &j, j );
-	char *p = (char *) & i;
-	for(int k = 0 ; k < 4 ; ++k) printf("%02x ", p[k] & 0xff);
-	uint32_t a = (uint32_t) &i;
-	int *k = (int *) a;
-	k--;
-	printf("k = [%p], p = [%p]\n", k);
-	*k += 3;//k[0] = 3;
-	printf("%d\n", j);
+    int i = 0x12345678, j = 32;
+	printf("[%p] = %x, [%p] = %d\n", &i, i, &j, j);
+	char *p = (char *)&i;
+	for (int i = 0; i < 4; i++) printf("%02x ", p[i] & 0xff);
+	uint32_t a = (uint32_t)&i;
+	int *k = (int *)a;
+	k += 2;
+	printf("\nk = [%p]\n", k);
+	*k += 5;
+	printf("%d, %d", j, *k);
 \end{minted}
 
 Dont voici le résultat sur la console : 
 
 \begin{minted}{C}
-[0012FF78] = 305419896, [0012FF74] = 32
-78 56 34 12 
-k = [0012FF74], p = [0012FF77]
-35
+[0018FF38] = 12345678, [0018FF40] = 32
+78 56 34 12
+k = [0018FF40]
+37, 37
 \end{minted}
 
 Quelques commentaires. 
@@ -595,7 +595,6 @@ printf("%d", f(3.14f, 4));
 \end{minted}
 
 Quelques commentaires : 
-
 \begin{itemize}
 	\item Ligne 1 : déclaration du type des fonctions, 
 	\item Ligne 4 : déclaration d'une variable "fonction",
@@ -1103,8 +1102,6 @@ PPEB ppeb  = basicinfo.PebBaseAddress;
 \end{minted}
 
 Et bien, on trouve une note de Microsoft :  "The NtQueryInformationProcess function and the structures that it returns are internal to the operating system and subject to change [...] If you do use NtQueryInformationProcess, access the function through run-time dynamic linking. This gives your code an opportunity to respond gracefully if the function has been changed or removed from the operating system." 
-
-
 
 
 \paragraph{Avec 2 lignes d'assembleur}
